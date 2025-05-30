@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Upload,
   FileText,
@@ -21,8 +21,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { api, ApiError, type UploadResponse, type FileInfo } from "@/lib/api"
 
-type AppState = "upload" | "processing" | "report"
+type AppState = "upload" | "processing" | "report" | "error"
 
 interface Issue {
   id: string
@@ -109,13 +110,96 @@ export default function CanvaAppReviewer() {
   const [currentState, setCurrentState] = useState<AppState>("upload")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null)
+  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [apiStatus, setApiStatus] = useState<{
+    supported_file_types: string[]
+    max_file_size_mb: number
+    max_file_size_display: string
+  } | null>(null)
+
+  // Check API status on component mount
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        const status = await api.status()
+        // Parse max_file_size from "10MB" to number
+        const maxSizeMB = parseInt(status.max_file_size.replace(/[^\d]/g, '')) || 10
+        setApiStatus({
+          supported_file_types: status.supported_file_types,
+          max_file_size_mb: maxSizeMB,
+          max_file_size_display: status.max_file_size
+        })
+      } catch (error) {
+        console.warn('Failed to get API status:', error)
+        // Fallback to default values
+        setApiStatus({
+          supported_file_types: ['.js', '.tsx'],
+          max_file_size_mb: 10,
+          max_file_size_display: '10MB'
+        })
+      }
+    }
+    checkApiStatus()
+  }, [])
 
   const overallScore = Math.round(
     Object.values(categoryScores).reduce((a, b) => a + b, 0) / Object.values(categoryScores).length,
   )
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
+    setIsUploading(true)
+    setError(null)
+    setUploadProgress(0)
+
+    try {
+      // Validate file before upload
+      if (apiStatus) {
+        const maxSizeBytes = apiStatus.max_file_size_mb * 1024 * 1024
+        if (file.size > maxSizeBytes) {
+          throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the maximum limit of ${apiStatus.max_file_size_mb}MB`)
+        }
+
+        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
+        if (!apiStatus.supported_file_types.includes(fileExtension)) {
+          throw new Error(`File type ${fileExtension} is not supported. Supported types: ${apiStatus.supported_file_types.join(', ')}`)
+        }
+      }
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 200)
+
+      const response = await api.uploadFile(file)
+      setUploadResponse(response)
+      setUploadProgress(100)
+      
+      // Get detailed file info
+      const info = await api.getFileInfo(response.file_id)
+      setFileInfo(info)
+      
+      clearInterval(progressInterval)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setError(error.message)
+      } else {
+        setError(error instanceof Error ? error.message : 'An unknown error occurred')
+      }
+      setCurrentState("error")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -138,7 +222,14 @@ export default function CanvaAppReviewer() {
   }
 
   const startAnalysis = () => {
+    if (!uploadResponse) {
+      setError('No file uploaded')
+      setCurrentState("error")
+      return
+    }
+    
     setCurrentState("processing")
+    // TODO: Phase 3 - Replace with actual analysis API call
     setTimeout(() => {
       setCurrentState("report")
     }, 3000)
@@ -147,6 +238,11 @@ export default function CanvaAppReviewer() {
   const resetToUpload = () => {
     setCurrentState("upload")
     setUploadedFile(null)
+    setUploadResponse(null)
+    setFileInfo(null)
+    setError(null)
+    setUploadProgress(0)
+    setIsUploading(false)
   }
 
   const CircularProgress = ({ value, size = 120 }: { value: number; size?: number }) => {
@@ -180,6 +276,38 @@ export default function CanvaAppReviewer() {
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-3xl font-bold text-gray-800">{value}</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentState === "error") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center space-y-8 max-w-md mx-auto px-4">
+          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+            <XCircle className="w-12 h-12 text-red-600" />
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold text-gray-800">Upload Failed</h2>
+            <p className="text-lg text-gray-600">{error}</p>
+          </div>
+
+          <div className="space-y-4">
+            <Button
+              onClick={resetToUpload}
+              size="lg"
+              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg"
+            >
+              <RotateCcw className="w-5 h-5 mr-2" />
+              Try Again
+            </Button>
+          </div>
+
+          <div className="text-sm text-gray-500">
+            If the problem persists, please check your file format and size.
+          </div>
         </div>
       </div>
     )
@@ -219,11 +347,34 @@ export default function CanvaAppReviewer() {
 
                   {uploadedFile ? (
                     <div className="space-y-4">
-                      <div className="flex items-center justify-center gap-2 text-green-600">
-                        <FileText className="w-5 h-5" />
-                        <span className="font-medium">{uploadedFile.name}</span>
-                      </div>
-                      <p className="text-gray-600">File ready for analysis</p>
+                      {isUploading ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-center gap-2 text-blue-600">
+                            <Upload className="w-5 h-5 animate-pulse" />
+                            <span className="font-medium">Uploading {uploadedFile.name}...</span>
+                          </div>
+                          <Progress value={uploadProgress} className="h-2" />
+                          <p className="text-sm text-gray-500">{uploadProgress}% complete</p>
+                        </div>
+                      ) : uploadResponse ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-center gap-2 text-green-600">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="font-medium">{uploadResponse.file_name}</span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p>Size: {(uploadResponse.file_size / 1024).toFixed(1)} KB</p>
+                            <p>Type: {uploadResponse.file_type}</p>
+                            <p>Status: {uploadResponse.status}</p>
+                          </div>
+                          <p className="text-green-600 font-medium">File ready for analysis</p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2 text-green-600">
+                          <FileText className="w-5 h-5" />
+                          <span className="font-medium">{uploadedFile.name}</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -231,30 +382,46 @@ export default function CanvaAppReviewer() {
                       <p className="text-gray-600">or click to browse files</p>
                       <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
                         <span>Supported formats:</span>
-                        <Badge variant="outline">.js</Badge>
-                        <Badge variant="outline">.tsx</Badge>
+                        {apiStatus ? (
+                          apiStatus.supported_file_types.map((type) => (
+                            <Badge key={type} variant="outline">{type}</Badge>
+                          ))
+                        ) : (
+                          <>
+                            <Badge variant="outline">.js</Badge>
+                            <Badge variant="outline">.tsx</Badge>
+                          </>
+                        )}
                       </div>
+                      {apiStatus && (
+                        <p className="text-xs text-gray-400">
+                          Maximum file size: {apiStatus.max_file_size_display}
+                        </p>
+                      )}
                     </div>
                   )}
 
                   <input
                     type="file"
-                    accept=".js,.tsx"
+                    accept={apiStatus ? apiStatus.supported_file_types.join(',') : '.js,.tsx'}
                     onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                     className="hidden"
                     id="file-upload"
+                    disabled={isUploading}
                   />
                   <label
                     htmlFor="file-upload"
-                    className="inline-block mt-6 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+                    className={`inline-block mt-6 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 ${
+                      isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
-                    Choose File
+                    {isUploading ? 'Uploading...' : 'Choose File'}
                   </label>
                 </div>
               </CardContent>
             </Card>
 
-            {uploadedFile && (
+            {uploadResponse && !isUploading && (
               <div className="mt-8 text-center">
                 <Button
                   onClick={startAnalysis}
