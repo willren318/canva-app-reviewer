@@ -231,7 +231,7 @@ Requirements:
         file_type = file_metadata.get("file_type", "unknown")
         
         return f"""
-You are analyzing a Canva app file for quality, security, and best practices.
+You are analyzing a Canva app file for quality, security, and UI&UX best practices.
 
 **File Information:**
 - File Name: {file_name}
@@ -244,5 +244,5 @@ You are analyzing a Canva app file for quality, security, and best practices.
 ```
 
 **Context:**
-This is a file from a Canva app, which runs in a sandboxed environment within Canva's design platform. Canva apps allow users to extend Canva's functionality and should follow security best practices, maintain high code quality, and provide excellent user experience.
+This is a file from a Canva app, which runs in a sandboxed environment within Canva's design platform. Canva apps allow users to extend Canva's functionality and should follow security best practices, maintain high code quality, and provide excellent user experience under the Canva Design guidelines.
 """ 
