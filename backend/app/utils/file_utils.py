@@ -41,15 +41,15 @@ async def validate_file(file: UploadFile) -> Dict[str, Any]:
         
         # Check file extension
         file_ext = Path(file.filename).suffix.lower()
-        if file_ext not in settings.allowed_extensions:
+        if file_ext not in settings.supported_file_types:
             return {
                 "valid": False,
-                "error": f"File type {file_ext} not allowed. Allowed types: {', '.join(settings.allowed_extensions)}"
+                "error": f"File type {file_ext} not allowed. Allowed types: {', '.join(settings.supported_file_types)}"
             }
         
         # Check file size
-        if file.size and file.size > settings.max_upload_size:
-            size_mb = settings.max_upload_size / (1024 * 1024)
+        if file.size and file.size > settings.max_file_size:
+            size_mb = settings.max_file_size / (1024 * 1024)
             return {
                 "valid": False,
                 "error": f"File size exceeds {size_mb}MB limit"

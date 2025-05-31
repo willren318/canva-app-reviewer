@@ -34,16 +34,17 @@ async def analyze_file(file_id: str, background_tasks: BackgroundTasks):
         AnalysisResponse: Analysis initiation confirmation and results
     """
     try:
-        # Check if file exists
-        file_path = Path(settings.upload_dir) / f"{file_id}.js"
-        tsx_file_path = Path(settings.upload_dir) / f"{file_id}.tsx"
-        
+        # Check if file exists - try all supported extensions
+        upload_path = Path(settings.upload_dir)
         actual_file_path = None
-        if file_path.exists():
-            actual_file_path = file_path
-        elif tsx_file_path.exists():
-            actual_file_path = tsx_file_path
-        else:
+        
+        for ext in settings.supported_file_types:
+            potential_path = upload_path / f"{file_id}{ext}"
+            if potential_path.exists():
+                actual_file_path = potential_path
+                break
+        
+        if not actual_file_path:
             raise HTTPException(
                 status_code=404,
                 detail=f"File with ID {file_id} not found"
@@ -192,8 +193,8 @@ async def run_analysis_background(file_id: str, file_path: str):
         # Update status to running
         analysis_status_store[file_id].update({
             "status": "running",
-            "progress": 10,
-            "message": "Analysis in progress..."
+            "progress": 20,
+            "message": "Initializing analysis..."
         })
         
         # Read file content
@@ -210,8 +211,8 @@ async def run_analysis_background(file_id: str, file_path: str):
         
         # Update progress
         analysis_status_store[file_id].update({
-            "progress": 30,
-            "message": "Running security analysis..."
+            "progress": 40,
+            "message": "Running comprehensive analysis..."
         })
         
         # Initialize orchestrator and run analysis
@@ -219,8 +220,8 @@ async def run_analysis_background(file_id: str, file_path: str):
         
         # Update progress
         analysis_status_store[file_id].update({
-            "progress": 50,
-            "message": "Running code quality analysis..."
+            "progress": 70,
+            "message": "Processing analysis results..."
         })
         
         # Run the comprehensive analysis

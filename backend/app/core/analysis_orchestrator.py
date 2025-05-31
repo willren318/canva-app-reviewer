@@ -127,14 +127,35 @@ class AnalysisOrchestrator:
         # Calculate overall score using weighted average
         overall_score = self._calculate_overall_score(analysis_results)
         
-        # Combine all issues from all analyzers
+        # Combine all issues from all analyzers with deduplication
         all_issues = []
+        seen_issues = set()  # Track issues to prevent duplicates
+        
         for category, result in analysis_results.items():
             issues = result.get("issues", [])
-            # Add category information to each issue
+            # Add category information to each issue and deduplicate
             for issue in issues:
                 issue["category"] = category
-            all_issues.extend(issues)
+                
+                # Create a unique identifier for this issue based on key characteristics
+                issue_key = self._create_issue_key(issue)
+                
+                if issue_key not in seen_issues:
+                    seen_issues.add(issue_key)
+                    all_issues.append(issue)
+                else:
+                    # Issue already exists, merge category information
+                    existing_issue = next(
+                        (existing for existing in all_issues 
+                         if self._create_issue_key(existing) == issue_key), 
+                        None
+                    )
+                    if existing_issue:
+                        # Add this category to the existing issue's categories
+                        if "categories" not in existing_issue:
+                            existing_issue["categories"] = [existing_issue["category"]]
+                        if category not in existing_issue["categories"]:
+                            existing_issue["categories"].append(category)
         
         # Sort issues by severity (critical first)
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -155,7 +176,7 @@ class AnalysisOrchestrator:
             for category, result in analysis_results.items()
         }
         
-        # Calculate analysis statistics
+        # Calculate analysis statistics using deduplicated issues
         total_issues = len(all_issues)
         critical_issues = len([i for i in all_issues if i.get("severity") == "critical"])
         high_issues = len([i for i in all_issues if i.get("severity") == "high"])
@@ -206,22 +227,35 @@ class AnalysisOrchestrator:
         else:
             recommendations.append("🎉 EXCELLENT: High-quality code with minimal issues.")
         
-        # Category-specific recommendations
+        # Category-specific recommendations with better formatting
         for category, result in analysis_results.items():
             score = result.get("score", 0)
             issues = result.get("issues", [])
             critical_issues = [i for i in issues if i.get("severity") == "critical"]
             
-            category_name = category.replace("_", " ").title()
+            if category == "security":
+                category_name = "Security"
+                category_emoji = "🔒"
+            elif category == "code_quality":
+                category_name = "Code Quality"
+                category_emoji = "⚙️"
+            else:  # ui_ux
+                category_name = "UI UX"
+                category_emoji = "🎨"
             
             if critical_issues:
-                recommendations.append(f"🔴 {category_name}: {len(critical_issues)} critical issue(s) need immediate fixes.")
+                critical_count = len(critical_issues)
+                critical_text = f"{critical_count} critical issue" + ("s" if critical_count != 1 else "")
+                recommendations.append(f"{category_emoji} {category_name}: {critical_text} need immediate fixes.")
             elif score < 60:
-                recommendations.append(f"🟡 {category_name}: Focus on addressing major concerns to improve score.")
+                recommendations.append(f"{category_emoji} {category_name}: Focus on addressing major concerns to improve score.")
             elif score >= 90:
-                recommendations.append(f"🟢 {category_name}: Excellent standards maintained.")
+                recommendations.append(f"{category_emoji} {category_name}: Excellent standards maintained.")
+            else:
+                # Score is 60-89 with no critical issues
+                recommendations.append(f"{category_emoji} {category_name}: Good foundation with room for minor improvements.")
         
-        # Add actionable next steps
+        # Add actionable next steps with better formatting
         all_issues = []
         for result in analysis_results.values():
             all_issues.extend(result.get("issues", []))
@@ -230,7 +264,9 @@ class AnalysisOrchestrator:
             top_issues = sorted(all_issues, key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.get("severity", "low"), 3))[:3]
             recommendations.append("📋 Next Steps: Start by addressing the top 3 highest-priority issues:")
             for i, issue in enumerate(top_issues, 1):
-                recommendations.append(f"   {i}. {issue.get('title', 'Unknown issue')} ({issue.get('severity', 'unknown')} severity)")
+                severity = issue.get('severity', 'unknown')
+                title = issue.get('title', 'Unknown issue')
+                recommendations.append(f"   {i}. {title} ({severity} severity)")
         
         return recommendations
     
@@ -249,22 +285,31 @@ class AnalysisOrchestrator:
                          critical_issues: int, high_issues: int) -> str:
         """Generate a concise summary of the analysis results."""
         if overall_score >= 90:
-            quality_desc = "excellent"
+            readiness_desc = "excellent Canva app readiness"
+            status_emoji = "🎉"
         elif overall_score >= 80:
-            quality_desc = "good"
+            readiness_desc = "good Canva app readiness"
+            status_emoji = "✅"
         elif overall_score >= 60:
-            quality_desc = "fair"
+            readiness_desc = "moderate Canva app readiness"
+            status_emoji = "⚠️"
         else:
-            quality_desc = "poor"
+            readiness_desc = "limited Canva app readiness"
+            status_emoji = "🔍"
+        
+        # Fix grammar for issues count
+        issue_text = f"{total_issues} issue" + ("s" if total_issues != 1 else "")
         
         priority_text = ""
         if critical_issues > 0:
-            priority_text = f" with {critical_issues} critical issue(s) requiring immediate attention"
+            critical_text = f"{critical_issues} critical issue" + ("s" if critical_issues != 1 else "")
+            priority_text = f" including {critical_text} requiring immediate attention"
         elif high_issues > 0:
-            priority_text = f" with {high_issues} high-priority issue(s) to address"
+            high_text = f"{high_issues} high-priority issue" + ("s" if high_issues != 1 else "")
+            priority_text = f" including {high_text} to address"
         
-        return (f"Analysis complete: {quality_desc} code quality (score: {overall_score}/100) "
-                f"with {total_issues} total issue(s) identified{priority_text}.")
+        return (f"{status_emoji} Analysis complete: {readiness_desc} with a score of {overall_score}/100. "
+                f"Found {issue_text}{priority_text}.")
     
     def _create_fallback_result(self, category: str, error_message: str) -> Dict[str, Any]:
         """Create a fallback result when an analyzer fails."""
@@ -311,4 +356,36 @@ class AnalysisOrchestrator:
             }],
             recommendations=["Re-upload the file and try analysis again."],
             summary=f"Analysis failed due to system error: {error_message}"
-        ) 
+        )
+    
+    def _create_issue_key(self, issue: Dict[str, Any]) -> str:
+        """
+        Create a unique key for an issue to identify duplicates.
+        Based on title, line number, and code snippet.
+        """
+        title = issue.get("title", "")
+        if title is None:
+            title = ""
+        title = title.lower().strip()
+        
+        line_number = issue.get("line_number")
+        
+        code_snippet = issue.get("code_snippet", "")
+        if code_snippet is None:
+            code_snippet = ""
+        code_snippet = code_snippet.strip()
+        
+        # Normalize title to catch variations
+        title_normalized = title.replace("via", "").replace("using", "").replace(" - ", " ").strip()
+        
+        # Create a composite key
+        key_parts = [title_normalized]
+        
+        if line_number is not None:
+            key_parts.append(f"line:{line_number}")
+            
+        if code_snippet:
+            # Use first 50 characters of code snippet
+            key_parts.append(f"code:{code_snippet[:50]}")
+        
+        return "|".join(key_parts) 

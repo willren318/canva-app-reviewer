@@ -28,74 +28,78 @@ class CodeQualityAnalyzer(BaseAnalyzer):
         code_quality_prompt = f"""
 {base_info}
 
-As an expert code quality analyst, please analyze this Canva app file for code quality, performance, and maintainability issues.
+As an expert code quality analyst, please analyze this Canva app file ONLY for code quality, performance, and maintainability issues.
 
-Focus on these code quality aspects:
+**IMPORTANT**: Focus EXCLUSIVELY on code quality aspects. Do NOT report:
+- Security vulnerabilities (XSS, injection attacks, etc.)
+- UI/UX design issues
+- Accessibility concerns
+- Business logic problems
+
+**CODE QUALITY-FOCUSED ANALYSIS**:
 
 1. **Code Structure & Organization**:
-   - Function/component complexity and size
-   - Proper separation of concerns
-   - Clear naming conventions
-   - Code duplication and reusability
-   - Import organization and dependencies
+   - Function/component complexity and size (cyclomatic complexity)
+   - Proper separation of concerns and single responsibility
+   - Clear naming conventions and readability
+   - Code duplication and reusability opportunities
+   - Import organization and dependency management
 
 2. **Performance Issues**:
    - Inefficient algorithms or data structures
    - Memory leaks and unnecessary re-renders
    - Blocking operations on main thread
    - Large bundle size contributors
-   - Expensive operations without memoization
+   - Missing memoization for expensive operations
 
 3. **React/TypeScript Best Practices**:
    - Proper use of hooks and lifecycle methods
    - Component composition patterns
    - State management efficiency
-   - Props validation and TypeScript usage
+   - TypeScript usage and type safety
    - Key prop usage in lists
 
-4. **Error Handling**:
-   - Missing try-catch blocks
+4. **Error Handling & Robustness**:
+   - Missing try-catch blocks for error-prone operations
    - Unhandled promise rejections
    - Inadequate error boundaries
-   - Poor error messaging
-   - Silent failures
+   - Poor error messaging for developers
+   - Silent failures and debugging difficulties
 
 5. **Code Maintainability**:
    - Magic numbers and hardcoded values
-   - Commented out code
+   - Commented out code and dead code
    - TODOs and incomplete implementations
    - Overly complex conditional logic
    - Inconsistent coding patterns
 
-6. **Canva-specific Best Practices**:
-   - Proper use of Canva SDK patterns
-   - Efficient data fetching from Canva APIs
-   - Appropriate use of Canva design tokens
-   - Following Canva app architecture guidelines
-
-7. **Documentation & Comments**:
-   - Missing or outdated documentation
-   - Unclear variable/function names
-   - Complex logic without explanation
-   - API usage without context
-
-8. **Testing Considerations**:
-   - Code that's difficult to test
-   - Missing validation that should be tested
+6. **Testing & Debugging**:
+   - Code that's difficult to unit test
    - Tight coupling that prevents testing
    - Side effects that complicate testing
+   - Missing assertions and validations
+   - Poor debugging capabilities
+
+7. **Standards & Conventions**:
+   - Linting rule violations
+   - Inconsistent code formatting
+   - Non-standard patterns
+   - Missing documentation for complex logic
+   - Unclear variable/function names
+
+8. **Canva-specific Code Quality**:
+   - Proper use of Canva SDK patterns
+   - Efficient data fetching from Canva APIs
+   - Appropriate use of Canva design system
+   - Following Canva app architecture guidelines
 
 For each code quality issue found, assess:
-- Severity: critical (breaks functionality), high (significant impact), medium (moderate impact), low (minor improvement)
-- Impact on maintainability and team productivity
+- Severity: critical (breaks functionality/build), high (significant maintainability impact), medium (moderate impact), low (minor improvement)
+- Impact on code maintainability and team productivity
 - Performance implications
-- Difficulty to fix
+- Effort required to fix
 
-Prioritize issues that:
-- Could cause runtime errors or crashes
-- Significantly impact performance
-- Make the code hard to maintain or extend
-- Violate established coding standards
+ONLY report issues related to code structure, performance, maintainability, and best practices - NOT security vulnerabilities.
 
 {self._get_response_format_instructions()}
 """

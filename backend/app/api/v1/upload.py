@@ -24,12 +24,12 @@ router = APIRouter()
 
 @router.post("/", response_model=FileUploadResponse)
 async def upload_file(
-    file: UploadFile = File(..., description="Canva app file (.js or .tsx)")
+    file: UploadFile = File(..., description="Canva app file (.js, .jsx, or .tsx)")
 ) -> FileUploadResponse:
     """
     Upload a Canva app file for analysis.
     
-    Accepts .js and .tsx files up to 10MB.
+    Accepts .js, .jsx, and .tsx files up to 10MB.
     Returns a file ID for tracking the analysis.
     """
     try:
@@ -90,11 +90,17 @@ async def upload_file(
 async def get_file_info(file_id: str) -> FileInfoResponse:
     """Get information about an uploaded file."""
     try:
-        # Check if file exists
+        # Check if file exists - try all supported extensions
         upload_path = Path(settings.upload_dir)
-        file_path = upload_path / f"{file_id}.js" if (upload_path / f"{file_id}.js").exists() else upload_path / f"{file_id}.tsx"
+        file_path = None
         
-        if not file_path.exists():
+        for ext in settings.supported_file_types:
+            potential_path = upload_path / f"{file_id}{ext}"
+            if potential_path.exists():
+                file_path = potential_path
+                break
+        
+        if not file_path or not file_path.exists():
             raise HTTPException(
                 status_code=404,
                 detail="File not found"
@@ -128,8 +134,8 @@ async def delete_file(file_id: str) -> JSONResponse:
     try:
         upload_path = Path(settings.upload_dir)
         
-        # Try both .js and .tsx extensions
-        for ext in ['.js', '.tsx']:
+        # Try all supported extensions
+        for ext in settings.supported_file_types:
             file_path = upload_path / f"{file_id}{ext}"
             if file_path.exists():
                 file_path.unlink()

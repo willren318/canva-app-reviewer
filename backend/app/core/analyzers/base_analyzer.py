@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 import json
 import re
+import asyncio
 
 import anthropic
 from app.config import settings
@@ -20,7 +21,7 @@ class BaseAnalyzer(ABC):
     """
     
     def __init__(self):
-        self.claude_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.claude_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         self.version = "1.0.0"
     
     @abstractmethod
@@ -51,7 +52,7 @@ class BaseAnalyzer(ABC):
         try:
             logger.info(f"Starting {self.get_analyzer_name()} analysis")
             
-            # Get analysis prompt
+            # Generate the analysis prompt using the abstract method
             prompt = self.get_analysis_prompt(file_content, file_metadata)
             
             # Call Claude API
@@ -81,11 +82,12 @@ class BaseAnalyzer(ABC):
             raise
     
     async def _call_claude(self, prompt: str) -> str:
-        """Call Claude API with the analysis prompt."""
+        """Call Claude API with the analysis prompt using the modern Messages API."""
         try:
-            message = self.claude_client.messages.create(
+            # Use the modern Messages API
+            message = await self.claude_client.messages.create(
                 model=settings.claude_model,
-                max_tokens=4000,
+                max_tokens=2500,  # Reduced from 4000 for more concise responses
                 temperature=0.1,  # Low temperature for consistent analysis
                 messages=[
                     {
@@ -95,7 +97,24 @@ class BaseAnalyzer(ABC):
                 ]
             )
             
-            return message.content[0].text
+            response_text = message.content[0].text
+            
+            # Debug logging for development/testing
+            logger.info(f"=== {self.get_analyzer_name()} Claude Response ===")
+            logger.info(f"Model: {settings.claude_model}")
+            logger.info(f"Response length: {len(response_text)} characters")
+            logger.info(f"Raw response: {response_text[:500]}{'...' if len(response_text) > 500 else ''}")
+            logger.info("=" * 50)
+            
+            # Also print to console for debugging
+            print(f"\n🤖 === {self.get_analyzer_name()} Claude Response ===")
+            print(f"📱 Model: {settings.claude_model}")
+            print(f"📏 Length: {len(response_text)} characters")
+            print(f"📄 Full Response:")
+            print(response_text)
+            print("=" * 50)
+            
+            return response_text
             
         except Exception as e:
             logger.error(f"Claude API call failed: {str(e)}")
@@ -182,24 +201,27 @@ Please respond with a JSON object in the following format:
     "issues": [
         {
             "severity": "critical|high|medium|low",
-            "title": "Brief issue title",
-            "description": "Detailed description of the issue",
+            "title": "Concise issue title (max 60 chars)",
+            "description": "Clear description of the issue (max 200 chars)",
             "line_number": number or null,
-            "code_snippet": "relevant code or null",
-            "recommendation": "Specific fix recommendation"
+            "code_snippet": "relevant code (max 100 chars) or null",
+            "recommendation": "Specific fix recommendation (max 150 chars)"
         }
     ],
     "recommendations": [
-        "High-level recommendation 1",
-        "High-level recommendation 2"
+        "High-level recommendation 1 (max 100 chars)",
+        "High-level recommendation 2 (max 100 chars)"
     ]
 }
 
-Important: 
+Requirements: 
+- Be concise and specific - avoid verbose descriptions
 - Only include actual issues found in the code
 - Be specific about line numbers when possible
 - Provide actionable recommendations
 - Focus on the most important issues first
+- Limit to maximum 8 issues per analysis
+- Prioritize severity: critical > high > medium > low
 """
 
     def _build_base_prompt(self, file_content: str, file_metadata: Dict[str, Any]) -> str:

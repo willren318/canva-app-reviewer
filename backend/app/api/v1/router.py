@@ -32,9 +32,9 @@ async def get_api_status():
         return APIStatusResponse(
             message="Canva App Reviewer API v1 is running",
             version="1.0.0",
-            upload_endpoint="Available - supports .js and .tsx files",
+            upload_endpoint="Available - supports .js, .jsx, and .tsx files",
             analysis_endpoint="Available - comprehensive 3-category analysis",
-            supported_file_types=[".js", ".tsx"],
+            supported_file_types=[".js", ".jsx", ".tsx"],
             max_file_size="10MB"
         )
     except Exception as e:

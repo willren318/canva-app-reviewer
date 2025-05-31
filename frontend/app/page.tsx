@@ -15,15 +15,26 @@ import {
   AlertTriangle,
   XCircle,
   Info,
+  Play,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { api, ApiError, type UploadResponse, type FileInfo } from "@/lib/api"
+import { 
+  api, 
+  ApiError, 
+  type FileUploadResponse, 
+  type FileInfoResponse, 
+  type AnalysisResult,
+  type AnalysisIssue,
+  type AnalysisStatusResponse,
+  type APIStatusResponse
+} from "@/lib/api"
 
-type AppState = "upload" | "processing" | "report" | "error"
+type AppState = "upload" | "processing" | "analysis" | "report" | "error"
 
 interface Issue {
   id: string
@@ -34,6 +45,12 @@ interface Issue {
   category: string
   guideline?: string
   codeSnippet?: string
+}
+
+// Extended interface for display purposes
+interface DisplayIssue extends AnalysisIssue {
+  id: string
+  guideline?: string
 }
 
 const mockIssues: Issue[] = [
@@ -110,45 +127,127 @@ export default function CanvaAppReviewer() {
   const [currentState, setCurrentState] = useState<AppState>("upload")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null)
-  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null)
+  const [uploadResponse, setUploadResponse] = useState<FileUploadResponse | null>(null)
+  const [fileInfo, setFileInfo] = useState<FileInfoResponse | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [apiStatus, setApiStatus] = useState<{
-    supported_file_types: string[]
-    max_file_size_mb: number
-    max_file_size_display: string
-  } | null>(null)
+  const [apiStatus, setApiStatus] = useState<APIStatusResponse | null>(null)
+  
+  // Analysis state
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatusResponse | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
 
   // Check API status on component mount
   useEffect(() => {
     const checkApiStatus = async () => {
       try {
         const status = await api.status()
-        // Parse max_file_size from "10MB" to number
-        const maxSizeMB = parseInt(status.max_file_size.replace(/[^\d]/g, '')) || 10
-        setApiStatus({
-          supported_file_types: status.supported_file_types,
-          max_file_size_mb: maxSizeMB,
-          max_file_size_display: status.max_file_size
-        })
+        setApiStatus(status)
       } catch (error) {
         console.warn('Failed to get API status:', error)
         // Fallback to default values
         setApiStatus({
+          message: "API unavailable",
+          version: "1.0.0",
+          upload_endpoint: "Available - supports .js and .tsx files",
+          analysis_endpoint: "Available - comprehensive 3-category analysis",
           supported_file_types: ['.js', '.tsx'],
-          max_file_size_mb: 10,
-          max_file_size_display: '10MB'
+          max_file_size: '10MB'
         })
       }
     }
     checkApiStatus()
   }, [])
 
-  const overallScore = Math.round(
+  // Poll analysis status when analyzing
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout
+
+    if (isAnalyzing && uploadResponse) {
+      pollInterval = setInterval(async () => {
+        try {
+          const status = await api.getAnalysisStatus(uploadResponse.file_id)
+          setAnalysisStatus(status)
+          setAnalysisProgress(status.progress || 0)
+
+          if (status.status === 'completed') {
+            // Get the analysis result
+            const result = await api.getAnalysisResult(uploadResponse.file_id)
+            if (result.success && result.analysis_result) {
+              setAnalysisResult(result.analysis_result)
+              setCurrentState('report')
+            } else {
+              setError(result.error || 'Analysis completed but no results available')
+              setCurrentState('error')
+            }
+            setIsAnalyzing(false)
+          } else if (status.status === 'failed') {
+            setError('Analysis failed: ' + status.message)
+            setCurrentState('error')
+            setIsAnalyzing(false)
+          }
+        } catch (error) {
+          console.error('Failed to poll analysis status:', error)
+          if (error instanceof ApiError) {
+            setError(error.message)
+          } else {
+            setError('Failed to check analysis status')
+          }
+          setCurrentState('error')
+          setIsAnalyzing(false)
+        }
+      }, 2000) // Poll every 2 seconds
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval)
+    }
+  }, [isAnalyzing, uploadResponse])
+
+  // Calculate overall score from analysis result or fallback to mock data
+  const overallScore = analysisResult ? analysisResult.overall_score : Math.round(
     Object.values(categoryScores).reduce((a, b) => a + b, 0) / Object.values(categoryScores).length,
   )
+
+  // Get category scores from analysis result or fallback to mock data
+  const getCategoryScores = () => {
+    if (analysisResult) {
+      return {
+        security: analysisResult.score_breakdown.security?.score || 0,
+        "code-quality": analysisResult.score_breakdown.code_quality?.score || 0,
+        "ui-ux": analysisResult.score_breakdown.ui_ux?.score || 0,
+      }
+    }
+    return categoryScores
+  }
+
+  // Get issues from analysis result or fallback to mock data
+  const getIssues = (): DisplayIssue[] => {
+    if (analysisResult) {
+      return analysisResult.issues.map((issue, index) => ({
+        ...issue,
+        id: `${analysisResult.file_name}-${index}`,
+        guideline: undefined, // Analysis results don't include guidelines
+        // Map backend category names to frontend format
+        category: issue.category === 'code_quality' ? 'code-quality' : 
+                 issue.category === 'ui_ux' ? 'ui-ux' : 
+                 issue.category || 'general'
+      }))
+    }
+    return mockIssues.map(issue => ({
+      severity: issue.severity,
+      title: issue.title,
+      description: issue.description,
+      recommendation: issue.suggestion,
+      category: issue.category,
+      code_snippet: issue.codeSnippet,
+      id: issue.id,
+      guideline: issue.guideline,
+    }))
+  }
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
@@ -159,9 +258,12 @@ export default function CanvaAppReviewer() {
     try {
       // Validate file before upload
       if (apiStatus) {
-        const maxSizeBytes = apiStatus.max_file_size_mb * 1024 * 1024
+        const maxSizeMatch = apiStatus.max_file_size.match(/(\d+)/)
+        const maxSizeMB = maxSizeMatch ? parseInt(maxSizeMatch[1]) : 10
+        const maxSizeBytes = maxSizeMB * 1024 * 1024
+        
         if (file.size > maxSizeBytes) {
-          throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the maximum limit of ${apiStatus.max_file_size_mb}MB`)
+          throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the maximum limit of ${maxSizeMB}MB`)
         }
 
         const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
@@ -190,6 +292,8 @@ export default function CanvaAppReviewer() {
       setFileInfo(info)
       
       clearInterval(progressInterval)
+      setCurrentState("processing")
+      
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message)
@@ -221,18 +325,35 @@ export default function CanvaAppReviewer() {
     }
   }
 
-  const startAnalysis = () => {
+  const startAnalysis = async () => {
     if (!uploadResponse) {
       setError('No file uploaded')
       setCurrentState("error")
       return
     }
     
-    setCurrentState("processing")
-    // TODO: Phase 3 - Replace with actual analysis API call
-    setTimeout(() => {
-      setCurrentState("report")
-    }, 3000)
+    try {
+      setIsAnalyzing(true)
+      setAnalysisProgress(0)
+      setCurrentState("analysis")
+      
+      // Start the analysis
+      const response = await api.startAnalysis(uploadResponse.file_id)
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to start analysis')
+      }
+      
+      // Analysis will continue in the background with polling
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setError(error.message)
+      } else {
+        setError(error instanceof Error ? error.message : 'Failed to start analysis')
+      }
+      setCurrentState("error")
+      setIsAnalyzing(false)
+    }
   }
 
   const resetToUpload = () => {
@@ -240,9 +361,13 @@ export default function CanvaAppReviewer() {
     setUploadedFile(null)
     setUploadResponse(null)
     setFileInfo(null)
+    setAnalysisResult(null)
+    setAnalysisStatus(null)
     setError(null)
     setUploadProgress(0)
+    setAnalysisProgress(0)
     setIsUploading(false)
+    setIsAnalyzing(false)
   }
 
   const CircularProgress = ({ value, size = 120 }: { value: number; size?: number }) => {
@@ -365,7 +490,6 @@ export default function CanvaAppReviewer() {
                           <div className="text-sm text-gray-600 space-y-1">
                             <p>Size: {(uploadResponse.file_size / 1024).toFixed(1)} KB</p>
                             <p>Type: {uploadResponse.file_type}</p>
-                            <p>Status: {uploadResponse.status}</p>
                           </div>
                           <p className="text-green-600 font-medium">File ready for analysis</p>
                         </div>
@@ -395,7 +519,7 @@ export default function CanvaAppReviewer() {
                       </div>
                       {apiStatus && (
                         <p className="text-xs text-gray-400">
-                          Maximum file size: {apiStatus.max_file_size_display}
+                          Maximum file size: {apiStatus.max_file_size}
                         </p>
                       )}
                     </div>
@@ -447,25 +571,117 @@ export default function CanvaAppReviewer() {
   if (currentState === "processing") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center space-y-8">
+        <div className="text-center space-y-8 max-w-md mx-auto px-4">
+          <div className="w-24 h-24 bg-gradient-to-r from-green-600 to-blue-600 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle className="w-12 h-12 text-white" />
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold text-gray-800">File Ready!</h2>
+            <p className="text-lg text-gray-600">Your file has been successfully processed and validated ✅</p>
+          </div>
+
+          {fileInfo && (
+            <div className="bg-white rounded-lg p-6 shadow-lg border border-gray-200 text-left">
+              <h3 className="font-semibold text-gray-800 mb-3">File Details:</h3>
+              <div className="space-y-2 text-sm text-gray-600">
+                <p><span className="font-medium">Name:</span> {fileInfo.file_name}</p>
+                <p><span className="font-medium">Size:</span> {(fileInfo.file_size / 1024).toFixed(1)} KB</p>
+                <p><span className="font-medium">Type:</span> {fileInfo.file_type}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <p className="text-gray-600">Ready to analyze your Canva app!</p>
+            <Button
+              onClick={startAnalysis}
+              size="lg"
+              className="w-full px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transform hover:scale-105 transition-all duration-200 shadow-lg"
+            >
+              <Zap className="w-5 h-5 mr-2" />
+              Start Analysis
+            </Button>
+            <p className="text-sm text-gray-500">This will run a comprehensive analysis of your code</p>
+          </div>
+
+          <div className="text-center">
+            <Button
+              onClick={resetToUpload}
+              variant="outline"
+              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Upload Different File
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentState === "analysis") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center space-y-8 max-w-lg mx-auto px-4">
           <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto animate-pulse">
             <Zap className="w-12 h-12 text-white" />
           </div>
 
           <div className="space-y-4">
             <h2 className="text-3xl font-bold text-gray-800">Analyzing your app...</h2>
-            <p className="text-lg text-gray-600">Good things are on their way! ✨</p>
+            <p className="text-lg text-gray-600">
+              {analysisStatus?.message || "Running comprehensive analysis..."}
+            </p>
           </div>
 
-          <div className="w-64 mx-auto">
-            <Progress value={75} className="h-2" />
+          <div className="w-80 mx-auto space-y-4">
+            <Progress value={analysisProgress} className="h-3" />
+            <p className="text-sm text-gray-500">{analysisProgress}% complete</p>
           </div>
 
-          <div className="text-sm text-gray-500 space-y-1">
-            <p>🔍 Checking code quality...</p>
-            <p>♿ Reviewing accessibility...</p>
-            <p>🎨 Analyzing design patterns...</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Analysis Components</h3>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center space-y-2">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-red-600">🔒</span>
+                </div>
+                <div className="text-gray-700 font-medium">Security</div>
+                <div className="text-xs text-gray-500">Vulnerabilities & threats</div>
+              </div>
+              <div className="text-center space-y-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-blue-600">🎯</span>
+                </div>
+                <div className="text-gray-700 font-medium">Code Quality</div>
+                <div className="text-xs text-gray-500">Best practices & structure</div>
+              </div>
+              <div className="text-center space-y-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-purple-600">🎨</span>
+                </div>
+                <div className="text-gray-700 font-medium">UI/UX</div>
+                <div className="text-xs text-gray-500">Design & accessibility</div>
+              </div>
+            </div>
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              All components analyzed in parallel • Powered by Claude AI
+            </div>
           </div>
+
+          {analysisStatus?.status === 'failed' && (
+            <div className="mt-8">
+              <Button
+                onClick={resetToUpload}
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -500,10 +716,44 @@ export default function CanvaAppReviewer() {
                 <CircularProgress value={overallScore} />
               </div>
               <div className="space-y-2">
-                <p className="text-lg font-semibold text-gray-700">Great work!</p>
-                <p className="text-sm text-gray-600">
-                  Your app shows strong potential with room for improvement in accessibility.
+                <p className="text-lg font-semibold text-gray-700">
+                  {overallScore >= 90 ? "Excellent work!" : 
+                   overallScore >= 80 ? "Great work!" :
+                   overallScore >= 60 ? "Good progress!" :
+                   "Needs improvement"}
                 </p>
+                <p className="text-sm text-gray-600">
+                  {analysisResult ? 
+                    `Analysis completed in ${analysisResult.analysis_duration}s with ${analysisResult.total_issues} total issues found.` :
+                    "Your app shows strong potential with room for improvement in accessibility."
+                  }
+                </p>
+                
+                {/* Analysis Statistics */}
+                {analysisResult && (
+                  <div className="flex justify-center gap-3 mt-4 text-xs flex-wrap">
+                    <div className="text-center">
+                      <div className="font-bold text-red-600">{analysisResult.critical_issues}</div>
+                      <div className="text-gray-500">Critical</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-orange-600">{analysisResult.high_issues}</div>
+                      <div className="text-gray-500">High</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-yellow-600">{analysisResult.issues.filter(issue => issue.severity === 'medium').length}</div>
+                      <div className="text-gray-500">Medium</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-blue-600">{analysisResult.issues.filter(issue => issue.severity === 'low').length}</div>
+                      <div className="text-gray-500">Low</div>
+                    </div>
+                    <div className="text-center border-l border-gray-300 pl-3 ml-3">
+                      <div className="font-bold text-gray-800">{analysisResult.total_issues}</div>
+                      <div className="text-gray-500">Total</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -515,24 +765,70 @@ export default function CanvaAppReviewer() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {Object.entries(categoryScores).map(([category, score]) => {
+                {Object.entries(getCategoryScores()).map(([category, score]) => {
                   // Determine color based on category
                   let barColor = ""
+                  let categoryDisplayName = ""
                   if (category === "security") {
                     barColor = "bg-red-500"
+                    categoryDisplayName = "Security"
                   } else if (category === "code-quality") {
                     barColor = "bg-blue-500"
+                    categoryDisplayName = "Code Quality"
                   } else if (category === "ui-ux") {
                     barColor = "bg-purple-500"
+                    categoryDisplayName = "UI & UX"
                   }
+
+                  // Get issue count for this category from analysis result
+                  const backendCategoryName = category === "code-quality" ? "code_quality" : 
+                                            category === "ui-ux" ? "ui_ux" : category
+                  const issueCount = analysisResult?.score_breakdown[backendCategoryName]?.issue_count || 0
+                  const severityBreakdown = analysisResult?.score_breakdown[backendCategoryName]?.severity_breakdown
 
                   return (
                     <div key={category} className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-medium text-gray-800 capitalize">
-                          {category === "ui-ux" ? "UI & UX" : category.replace("-", " ")}
-                        </span>
-                        <span className="text-xl font-bold text-blue-600">{score}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg font-medium text-gray-800">
+                            {categoryDisplayName}
+                          </span>
+                          {analysisResult && severityBreakdown && (
+                            <div className="flex gap-1 text-xs flex-wrap">
+                              {(severityBreakdown.critical !== undefined) && (
+                                <span className="bg-red-100 text-red-700 px-2 py-1 rounded">
+                                  {severityBreakdown.critical} critical
+                                </span>
+                              )}
+                              {(severityBreakdown.high !== undefined) && (
+                                <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                                  {severityBreakdown.high} high
+                                </span>
+                              )}
+                              {(severityBreakdown.medium !== undefined) && (
+                                <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                                  {severityBreakdown.medium} medium
+                                </span>
+                              )}
+                              {(severityBreakdown.low !== undefined) && (
+                                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                  {severityBreakdown.low} low
+                                </span>
+                              )}
+                              {issueCount === 0 && !severityBreakdown && (
+                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                                  No issues
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xl font-bold text-blue-600">{score}</span>
+                          {analysisResult && (
+                            <div className="text-xs text-gray-500">{issueCount} issues</div>
+                          )}
+                        </div>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-4">
                         <div
@@ -558,12 +854,45 @@ export default function CanvaAppReviewer() {
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-gray-800">Overall Assessment</h3>
                 <p className="text-gray-700 leading-relaxed">
-                  Your Canva app demonstrates solid code quality and performance with a modern, user-friendly interface.
-                  The main areas for improvement focus on accessibility compliance and design consistency. Addressing
-                  the contrast issues and missing alt text will significantly enhance the user experience for all users.
+                  {analysisResult?.summary || 
+                   "Your Canva app demonstrates solid code quality and performance with a modern, user-friendly interface. The main areas for improvement focus on accessibility compliance and design consistency."}
                 </p>
               </div>
             </div>
+            
+            {/* Recommendations Section */}
+            {analysisResult?.recommendations && analysisResult.recommendations.length > 0 && (
+              <div className="mt-6 bg-white/60 rounded-lg p-4">
+                <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  💡 Key Recommendations
+                </h4>
+                <ul className="space-y-2">
+                  {analysisResult.recommendations.slice(0, 5).map((recommendation, index) => {
+                    // Check if this is a numbered sub-item (starts with whitespace and number)
+                    const isNumberedItem = recommendation.trim().match(/^\d+\./)
+                    const isIndentedItem = recommendation.startsWith('   ')
+                    
+                    if (isIndentedItem && isNumberedItem) {
+                      // This is a numbered sub-item, display without bullet and with indentation
+                      return (
+                        <li key={index} className="text-sm text-gray-700 ml-4">
+                          <span>{recommendation.trim()}</span>
+                        </li>
+                      )
+                    } else {
+                      // Regular recommendation item with bullet
+                      return (
+                        <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span>{recommendation}</span>
+                        </li>
+                      )
+                    }
+                  })}
+                </ul>
+              </div>
+            )}
+            
             <div className="mt-6">
               <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
                 <Download className="w-4 h-4 mr-2" />
@@ -580,29 +909,29 @@ export default function CanvaAppReviewer() {
           </CardHeader>
           <CardContent className="p-0">
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-gray-50 p-1 m-6 mb-0 rounded-lg">
-                <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-                  All Issues
+              <TabsList className="flex w-full bg-gray-50 p-1 rounded-lg overflow-hidden">
+                <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-blue-600 text-sm flex-1 px-1 py-2 min-w-0 text-center">
+                  <span className="truncate">All Issues</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="security"
-                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600"
+                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 text-sm flex-1 px-1 py-2 min-w-0 text-center"
                 >
-                  Security
+                  <span className="truncate">Security</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="code-quality"
-                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600"
+                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 text-sm flex-1 px-1 py-2 min-w-0 text-center"
                 >
-                  Code Quality
+                  <span className="truncate">Code Quality</span>
                 </TabsTrigger>
-                <TabsTrigger value="ui-ux" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-                  UI & UX
+                <TabsTrigger value="ui-ux" className="data-[state=active]:bg-white data-[state=active]:text-blue-600 text-sm flex-1 px-1 py-2 min-w-0 text-center">
+                  <span className="truncate">UI & UX</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="all" className="p-6 space-y-4">
-                {mockIssues.map((issue) => {
+              <TabsContent value="all" className="mt-6 space-y-4">
+                {getIssues().map((issue) => {
                   const SeverityIcon = severityConfig[issue.severity].icon
                   return (
                     <Card
@@ -624,15 +953,15 @@ export default function CanvaAppReviewer() {
                             <p className="text-gray-600">{issue.description}</p>
                             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                               <p className="text-green-800 font-medium mb-1">💡 Suggestion:</p>
-                              <p className="text-green-700">{issue.suggestion}</p>
+                              <p className="text-green-700">{issue.recommendation}</p>
                             </div>
-                            {issue.codeSnippet && (
+                            {issue.code_snippet && (
                               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Code className="w-4 h-4 text-gray-500" />
                                   <span className="text-sm font-medium text-gray-700">Code Example</span>
                                 </div>
-                                <code className="text-sm text-gray-800 font-mono">{issue.codeSnippet}</code>
+                                <code className="text-sm text-gray-800 font-mono">{issue.code_snippet}</code>
                               </div>
                             )}
                             {issue.guideline && (
@@ -650,8 +979,8 @@ export default function CanvaAppReviewer() {
               </TabsContent>
 
               {["security", "code-quality", "ui-ux"].map((category) => (
-                <TabsContent key={category} value={category} className="p-6 space-y-4">
-                  {mockIssues
+                <TabsContent key={category} value={category} className="mt-6 space-y-4">
+                  {getIssues()
                     .filter((issue) => issue.category === category)
                     .map((issue) => {
                       const SeverityIcon = severityConfig[issue.severity].icon
@@ -675,15 +1004,15 @@ export default function CanvaAppReviewer() {
                                 <p className="text-gray-600">{issue.description}</p>
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                                   <p className="text-green-800 font-medium mb-1">💡 Suggestion:</p>
-                                  <p className="text-green-700">{issue.suggestion}</p>
+                                  <p className="text-green-700">{issue.recommendation}</p>
                                 </div>
-                                {issue.codeSnippet && (
+                                {issue.code_snippet && (
                                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                       <Code className="w-4 h-4 text-gray-500" />
                                       <span className="text-sm font-medium text-gray-700">Code Example</span>
                                     </div>
-                                    <code className="text-sm text-gray-800 font-mono">{issue.codeSnippet}</code>
+                                    <code className="text-sm text-gray-800 font-mono">{issue.code_snippet}</code>
                                   </div>
                                 )}
                                 {issue.guideline && (

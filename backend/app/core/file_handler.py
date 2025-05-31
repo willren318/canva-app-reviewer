@@ -150,11 +150,10 @@ class FileHandler:
     
     def _check_basic_syntax(self, content: str) -> bool:
         """Check for basic JavaScript/TypeScript syntax validity."""
-        # Look for obvious syntax errors
+        # Look for obvious syntax errors (but be lenient with JSX)
         error_patterns = [
-            r'function\s*\(\)',  # function without name in declaration
-            r'}\s*{',  # Adjacent closing and opening braces without statement
-            r';;+',  # Multiple semicolons
+            r'function\s*\(\)\s*{',  # function without name in declaration
+            r';;;+',  # Three or more consecutive semicolons
         ]
         
         for pattern in error_patterns:
@@ -162,7 +161,7 @@ class FileHandler:
                 return False
         
         # Check for required patterns in a valid JS/TS file
-        if not any(pattern in content for pattern in ['function', 'const', 'let', 'var', 'class', '=>']):
+        if not any(pattern in content for pattern in ['function', 'const', 'let', 'var', 'class', '=>', 'import']):
             return False
         
         return True
