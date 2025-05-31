@@ -13,6 +13,7 @@ import {
   RotateCcw,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
   XCircle,
   Info,
   Play,
@@ -114,7 +115,7 @@ const severityConfig = {
   critical: { color: "bg-red-100 text-red-800 border-red-200", icon: XCircle, iconColor: "text-red-500" },
   high: { color: "bg-orange-100 text-orange-800 border-orange-200", icon: AlertTriangle, iconColor: "text-orange-500" },
   medium: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Info, iconColor: "text-yellow-500" },
-  low: { color: "bg-blue-100 text-blue-800 border-blue-200", icon: CheckCircle, iconColor: "text-blue-500" },
+  low: { color: "bg-blue-100 text-blue-800 border-blue-200", icon: AlertCircle, iconColor: "text-blue-500" },
 }
 
 const categoryScores = {
@@ -368,6 +369,375 @@ export default function CanvaAppReviewer() {
     setAnalysisProgress(0)
     setIsUploading(false)
     setIsAnalyzing(false)
+  }
+
+  const downloadReport = () => {
+    const issues = getIssues()
+    const categoryScores = getCategoryScores()
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    
+    const fileName = analysisResult?.file_name || uploadedFile?.name || 'canva-app'
+    
+    // Function to escape HTML content for display as text
+    const escapeHtml = (text: string) => {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+    
+    // Generate HTML report content
+    const reportHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canva App Analysis Report - ${fileName}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            color: #374151;
+            background: #ffffff;
+        }
+        .header { 
+            text-align: center; 
+            border-bottom: 3px solid #3B82F6; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px;
+        }
+        .score-circle { 
+            display: inline-block; 
+            width: 80px; 
+            height: 80px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            color: white; 
+            text-align: center; 
+            line-height: 80px; 
+            font-size: 24px; 
+            font-weight: bold;
+            margin: 10px;
+        }
+        .category-score { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px; 
+            margin: 8px 0; 
+            background: #F3F4F6; 
+            border-radius: 8px;
+            clear: both;
+        }
+        .issue { 
+            border: 1px solid #E5E7EB; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            padding: 20px;
+            clear: both;
+            overflow: hidden;
+        }
+        .issue-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .issue-title {
+            flex: 1;
+            min-width: 200px;
+        }
+        .severity-critical { background: #FEF2F2; border-left: 4px solid #EF4444; }
+        .severity-high { background: #FFFBEB; border-left: 4px solid #F59E0B; }
+        .severity-medium { background: #FEFCE8; border-left: 4px solid #EAB308; }
+        .severity-low { background: #EFF6FF; border-left: 4px solid #3B82F6; }
+        .severity-badge { 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .badge-critical { background: #FEE2E2; color: #991B1B; }
+        .badge-high { background: #FED7AA; color: #C2410C; }
+        .badge-medium { background: #FEF3C7; color: #A16207; }
+        .badge-low { background: #DBEAFE; color: #1D4ED8; }
+        .code-block { 
+            background: #F9FAFB; 
+            border: 1px solid #E5E7EB; 
+            border-radius: 6px; 
+            padding: 15px; 
+            font-family: 'Monaco', 'Courier New', monospace; 
+            font-size: 13px;
+            margin: 12px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .suggestion { 
+            background: #F0FDF4; 
+            border: 1px solid #BBF7D0; 
+            border-radius: 6px; 
+            padding: 15px; 
+            margin: 12px 0;
+        }
+        .suggestion-header {
+            font-weight: 600;
+            color: #166534;
+            margin-bottom: 8px;
+        }
+        .recommendation-list { 
+            background: #F8FAFC; 
+            border-radius: 8px; 
+            padding: 16px; 
+            margin: 16px 0;
+        }
+        .recommendation-list ul { 
+            margin: 8px 0; 
+            padding-left: 20px;
+        }
+        .recommendation-list li { 
+            margin: 8px 0;
+        }
+        .stats-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+        .stat-number {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #6B7280;
+            margin-top: 2px;
+        }
+        h1, h2, h3, h4 { 
+            color: #1F2937; 
+            margin-top: 0;
+        }
+        h3 {
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        .section { 
+            margin: 40px 0; 
+            clear: both;
+        }
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        @media print {
+            body { margin: 0; padding: 15px; }
+            .issue { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Canva App Analysis Report</h1>
+        <h2>${fileName}</h2>
+        <p><strong>Generated:</strong> ${currentDate}</p>
+        ${analysisResult ? `<p><strong>Analysis Duration:</strong> ${analysisResult.analysis_duration}s</p>` : ''}
+    </div>
+
+    <div class="section">
+        <h2>📊 Overall Assessment</h2>
+        <div style="text-align: center;">
+            <div class="score-circle">${overallScore}</div>
+            <p><strong>Canva-Ready Score: ${overallScore}/100</strong></p>
+        </div>
+        <p>${analysisResult?.summary || "Your Canva app demonstrates solid code quality and performance with a modern, user-friendly interface. The main areas for improvement focus on accessibility compliance and design consistency."}</p>
+        
+        ${analysisResult ? `
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" style="color: #EF4444;">${analysisResult.critical_issues}</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #F59E0B;">${analysisResult.high_issues}</div>
+                <div class="stat-label">High</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #EAB308;">${analysisResult.issues.filter(issue => issue.severity === 'medium').length}</div>
+                <div class="stat-label">Medium</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #3B82F6;">${analysisResult.issues.filter(issue => issue.severity === 'low').length}</div>
+                <div class="stat-label">Low</div>
+            </div>
+            <div class="stat-item" style="border-left: 2px solid #E5E7EB; padding-left: 20px; margin-left: 10px;">
+                <div class="stat-number" style="color: #1F2937;">${analysisResult.total_issues}</div>
+                <div class="stat-label">Total Issues</div>
+            </div>
+        </div>
+        ` : ''}
+    </div>
+
+    <div class="section">
+        <h2>📈 Category Breakdown</h2>
+        ${Object.entries(categoryScores).map(([category, score]) => {
+          const categoryDisplayName = category === "code-quality" ? "Code Quality" : 
+                                    category === "ui-ux" ? "UI & UX" : 
+                                    category.charAt(0).toUpperCase() + category.slice(1)
+          const backendCategoryName = category === "code-quality" ? "code_quality" : 
+                                    category === "ui-ux" ? "ui_ux" : category
+          const issueCount = analysisResult?.score_breakdown[backendCategoryName]?.issue_count || 0
+          
+          return `
+            <div class="category-score">
+                <div>
+                    <strong>${categoryDisplayName}</strong>
+                    ${analysisResult ? `<span style="color: #6B7280; font-size: 14px;"> (${issueCount} issues)</span>` : ''}
+                </div>
+                <div style="font-size: 18px; font-weight: bold; color: #3B82F6;">${score}/100</div>
+            </div>
+          `
+        }).join('')}
+    </div>
+
+    ${analysisResult?.recommendations && analysisResult.recommendations.length > 0 ? `
+    <div class="section">
+        <h2>💡 Key Recommendations</h2>
+        <div class="recommendation-list">
+            <ul>
+                ${analysisResult.recommendations.slice(0, 5).map(rec => {
+                  const isIndentedItem = rec.startsWith('   ') && rec.trim().match(/^\d+\./)
+                  if (isIndentedItem) {
+                    return `<li style="margin-left: 20px; list-style-type: decimal;">${escapeHtml(rec.trim().replace(/^\d+\.\s*/, ''))}</li>`
+                  } else {
+                    return `<li>${escapeHtml(rec)}</li>`
+                  }
+                }).join('')}
+            </ul>
+        </div>
+    </div>
+    ` : ''}
+
+    <div class="section">
+        <h2>🔍 Detailed Findings</h2>
+        
+        <h3>📋 All Issues Summary</h3>
+        <p><strong>Total Issues Found:</strong> ${issues.length}</p>
+        
+        ${['critical', 'high', 'medium', 'low'].map(severity => {
+          const severityIssues = issues.filter(issue => issue.severity === severity)
+          if (severityIssues.length === 0) return ''
+          
+          return `
+            <h3>${severity.charAt(0).toUpperCase() + severity.slice(1)} Priority Issues (${severityIssues.length})</h3>
+            ${severityIssues.map(issue => `
+              <div class="issue severity-${severity} clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">${escapeHtml(issue.title)}</h4>
+                    <span class="severity-badge badge-${severity}">${severity}</span>
+                </div>
+                <p>${escapeHtml(issue.description)}</p>
+                ${issue.code_snippet ? `
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">${escapeHtml(issue.code_snippet)}</div>
+                    </div>
+                ` : ''}
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>${escapeHtml(issue.recommendation)}</div>
+                </div>
+                ${issue.guideline ? `<p><strong>📖 Guideline:</strong> ${escapeHtml(issue.guideline)}</p>` : ''}
+              </div>
+            `).join('')}
+          `
+        }).join('')}
+
+        ${['security', 'code-quality', 'ui-ux'].map(category => {
+          const categoryIssues = issues.filter(issue => issue.category === category)
+          const categoryDisplayName = category === "code-quality" ? "Code Quality" : 
+                                    category === "ui-ux" ? "UI & UX" : 
+                                    category.charAt(0).toUpperCase() + category.slice(1)
+          
+          if (categoryIssues.length === 0) return `<h3>${categoryDisplayName} Issues</h3><p>✅ No issues found in this category.</p>`
+          
+          return `
+            <h3>${categoryDisplayName} Issues (${categoryIssues.length})</h3>
+            ${categoryIssues.map(issue => `
+              <div class="issue severity-${issue.severity} clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">${escapeHtml(issue.title)}</h4>
+                    <span class="severity-badge badge-${issue.severity}">${issue.severity}</span>
+                </div>
+                <p>${escapeHtml(issue.description)}</p>
+                ${issue.code_snippet ? `
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">${escapeHtml(issue.code_snippet)}</div>
+                    </div>
+                ` : ''}
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>${escapeHtml(issue.recommendation)}</div>
+                </div>
+                ${issue.guideline ? `<p><strong>📖 Guideline:</strong> ${escapeHtml(issue.guideline)}</p>` : ''}
+              </div>
+            `).join('')}
+          `
+        }).join('')}
+    </div>
+
+    <div class="section" style="text-align: center; border-top: 2px solid #E5E7EB; padding-top: 20px; margin-top: 40px;">
+        <p style="color: #6B7280; font-size: 14px;">
+            Generated by Canva App Reviewer • ${currentDate}<br>
+            MIT Licensed • This prototype is not affiliated with Canva
+        </p>
+    </div>
+</body>
+</html>`
+
+    // Create and download the HTML file
+    const blob = new Blob([reportHTML], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `canva-app-analysis-${fileName.replace(/\.[^/.]+$/, '')}-${new Date().toISOString().split('T')[0]}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const CircularProgress = ({ value, size = 120 }: { value: number; size?: number }) => {
@@ -894,7 +1264,7 @@ export default function CanvaAppReviewer() {
             )}
             
             <div className="mt-6">
-              <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
+              <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50" onClick={downloadReport}>
                 <Download className="w-4 h-4 mr-2" />
                 Download Full Report
               </Button>
@@ -951,19 +1321,21 @@ export default function CanvaAppReviewer() {
                               </Badge>
                             </div>
                             <p className="text-gray-600">{issue.description}</p>
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <p className="text-green-800 font-medium mb-1">💡 Suggestion:</p>
-                              <p className="text-green-700">{issue.recommendation}</p>
-                            </div>
+                            
                             {issue.code_snippet && (
                               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Code className="w-4 h-4 text-gray-500" />
-                                  <span className="text-sm font-medium text-gray-700">Code Example</span>
+                                  <span className="text-sm font-medium text-gray-700">Issue Found Here:</span>
                                 </div>
                                 <code className="text-sm text-gray-800 font-mono">{issue.code_snippet}</code>
                               </div>
                             )}
+                            
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                              <p className="text-green-800 font-medium mb-1">💡 Suggestion:</p>
+                              <p className="text-green-700">{issue.recommendation}</p>
+                            </div>
                             {issue.guideline && (
                               <div className="flex items-center gap-2 text-sm text-blue-600">
                                 <Info className="w-4 h-4" />
@@ -1002,19 +1374,21 @@ export default function CanvaAppReviewer() {
                                   </Badge>
                                 </div>
                                 <p className="text-gray-600">{issue.description}</p>
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                  <p className="text-green-800 font-medium mb-1">💡 Suggestion:</p>
-                                  <p className="text-green-700">{issue.recommendation}</p>
-                                </div>
+                                
                                 {issue.code_snippet && (
                                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                       <Code className="w-4 h-4 text-gray-500" />
-                                      <span className="text-sm font-medium text-gray-700">Code Example</span>
+                                      <span className="text-sm font-medium text-gray-700">Issue Found Here:</span>
                                     </div>
                                     <code className="text-sm text-gray-800 font-mono">{issue.code_snippet}</code>
                                   </div>
                                 )}
+                                
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                  <p className="text-green-800 font-medium mb-1">💡 Suggestion:</p>
+                                  <p className="text-green-700">{issue.recommendation}</p>
+                                </div>
                                 {issue.guideline && (
                                   <div className="flex items-center gap-2 text-sm text-blue-600">
                                     <Info className="w-4 h-4" />
