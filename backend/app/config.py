@@ -20,7 +20,14 @@ class Settings(BaseSettings):
     # Server settings
     host: str = "0.0.0.0"
     port: int = 8000
-    allowed_origins: list = ["http://localhost:3000", "http://127.0.0.1:3000"]  # For CORS
+    allowed_origins: list = [
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://13.211.45.190:3000",
+        "https://13.211.45.190:3000",
+        "http://13.211.45.190",
+        "https://13.211.45.190"
+    ]  # For CORS
     
     # Database settings
     database_url: str = "sqlite:///./app_reviewer.db"
