@@ -30,6 +30,11 @@ async def upload_file(
     Upload a Canva app file for analysis.
     
     Accepts .js, .jsx, and .tsx files up to 10MB.
+    
+    **Visual Analysis Support:**
+    - .js files: Full analysis with screenshot capture, visual review, and code analysis
+    - .jsx/.tsx files: Code-only analysis (no screenshots due to transpilation requirements)
+    
     Returns a file ID for tracking the analysis.
     """
     try:

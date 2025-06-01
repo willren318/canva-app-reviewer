@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     app_name: str = "Canva App Reviewer"
     app_version: str = "1.0.0"
     version: str = "1.0.0"  # Alias for app_version
-    app_description: str = "AI-powered code review tool for Canva applications"
+    app_description: str = "AI-powered code review tool for Canva applications (.js with visual and code analysis, .jsx/.tsx with code-only analysis)"
     debug: bool = False
     
     # Server settings
