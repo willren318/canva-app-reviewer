@@ -134,6 +134,7 @@ celerybeat.pid
 env/
 venv/
 ENV/
+backend/canva_venv/
 env.bak/
 venv.bak/
 

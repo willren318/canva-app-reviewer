@@ -1,6 +1,6 @@
 """
 Simplified screenshot utilities for vanilla JavaScript Canva apps.
-Fast, reliable, and dependency-free screenshot capture.
+Fast, reliable, and comprehensive screenshot capture with advanced visual analysis.
 """
 
 import asyncio
@@ -11,6 +11,14 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from playwright.async_api import async_playwright, Browser, Page
 import logging
+
+# Optional OpenCV imports (with fallback)
+try:
+    import cv2
+    import numpy as np
+    OPENCV_AVAILABLE = True
+except ImportError:
+    OPENCV_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -274,31 +282,124 @@ class JavaScriptScreenshotCapture:
     
     async def analyze_visual_metrics(self, screenshot_base64: str) -> Dict[str, Any]:
         """
-        Perform basic visual analysis on the screenshot.
-        Simplified version without OpenCV complexity.
+        Perform comprehensive visual analysis on the screenshot using OpenCV.
+        Provides detailed visual complexity metrics for UI/UX analysis.
         """
         try:
-            # Basic metrics without OpenCV
-            import math
+            if not OPENCV_AVAILABLE:
+                logger.warning("OpenCV not available, falling back to basic analysis")
+                # Fallback to basic analysis if OpenCV is not available
+                base64_size = len(screenshot_base64)
+                estimated_complexity = min(base64_size / 20000, 1.0)
+                
+                complexity_level = "low"
+                if estimated_complexity > 0.7:
+                    complexity_level = "high"
+                elif estimated_complexity > 0.4:
+                    complexity_level = "medium"
+                
+                return {
+                    "screenshot_size_bytes": base64_size,
+                    "estimated_visual_complexity": complexity_level,
+                    "complexity_score": estimated_complexity,
+                    "analysis_method": "base64_size_estimation",
+                    "note": "OpenCV not available - using simplified analysis"
+                }
             
-            # Calculate approximate visual complexity from base64 size
-            base64_size = len(screenshot_base64)
+            # Decode base64 image
+            image_data = base64.b64decode(screenshot_base64)
             
-            # Estimate compression ratio (higher = more complex visuals)
-            estimated_complexity = min(base64_size / 20000, 1.0)  # Normalize to 0-1
+            # Convert to OpenCV format
+            nparr = np.frombuffer(image_data, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
-            complexity_level = "low"
-            if estimated_complexity > 0.7:
+            if img is None:
+                logger.error("Could not decode screenshot image")
+                return {"error": "Could not decode image", "analysis_method": "failed"}
+            
+            # Basic image properties
+            height, width = img.shape[:2]
+            total_pixels = height * width
+            
+            # Color analysis
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            colors = img_rgb.reshape(-1, 3)
+            unique_colors = len(np.unique(colors.view(np.void), axis=0))
+            color_diversity = min(unique_colors / 1000, 1.0)  # Normalize to 0-1
+            
+            # Edge density analysis (visual complexity)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(gray, 100, 200)
+            edge_density = np.sum(edges > 0) / total_pixels
+            
+            # Whitespace analysis
+            whitespace_threshold = 240
+            whitespace_ratio = np.sum(gray > whitespace_threshold) / total_pixels
+            
+            # Layout balance analysis (using center of mass)
+            moments = cv2.moments(gray)
+            if moments["m00"] != 0:
+                center_x = int(moments["m10"] / moments["m00"])
+                center_y = int(moments["m01"] / moments["m00"])
+                balance_x = abs(center_x - width // 2) / (width // 2)
+                balance_y = abs(center_y - height // 2) / (height // 2)
+                layout_balance = 1.0 - (balance_x + balance_y) / 2
+            else:
+                layout_balance = 0.5
+            
+            # Overall visual complexity score
+            complexity_score = (edge_density * 0.4 + color_diversity * 0.3 + (1 - whitespace_ratio) * 0.3)
+            
+            # Categorize complexity
+            if complexity_score > 0.7:
                 complexity_level = "high"
-            elif estimated_complexity > 0.4:
+            elif complexity_score > 0.4:
                 complexity_level = "medium"
+            else:
+                complexity_level = "low"
+            
+            # Content density analysis
+            content_ratio = 1.0 - whitespace_ratio
+            if content_ratio > 0.8:
+                content_density = "dense"
+            elif content_ratio > 0.5:
+                content_density = "moderate"
+            else:
+                content_density = "sparse"
             
             return {
-                "screenshot_size_bytes": base64_size,
-                "estimated_visual_complexity": complexity_level,
-                "complexity_score": estimated_complexity,
-                "analysis_method": "base64_size_estimation",
-                "note": "Simplified analysis for vanilla JS apps"
+                "dimensions": {
+                    "width": width,
+                    "height": height,
+                    "aspect_ratio": round(width / height, 2)
+                },
+                "color_analysis": {
+                    "unique_colors": unique_colors,
+                    "color_diversity_score": round(color_diversity, 3)
+                },
+                "layout_analysis": {
+                    "edge_density": round(edge_density, 3),
+                    "whitespace_ratio": round(whitespace_ratio, 3),
+                    "content_density": content_density,
+                    "layout_balance_score": round(layout_balance, 3)
+                },
+                "visual_complexity": {
+                    "level": complexity_level,
+                    "score": round(complexity_score, 3),
+                    "factors": {
+                        "edge_complexity": round(edge_density, 3),
+                        "color_complexity": round(color_diversity, 3),
+                        "content_density": round(content_ratio, 3)
+                    }
+                },
+                "canva_design_metrics": {
+                    "is_well_balanced": layout_balance > 0.7,
+                    "has_good_whitespace": 0.2 < whitespace_ratio < 0.6,
+                    "appropriate_complexity": 0.3 < complexity_score < 0.8,
+                    "visual_hierarchy_score": round(edge_density * layout_balance, 3)
+                },
+                "analysis_method": "opencv_advanced",
+                "screenshot_size_bytes": len(screenshot_base64)
             }
             
         except Exception as e:
