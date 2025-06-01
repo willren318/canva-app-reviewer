@@ -12,7 +12,7 @@ services:
       - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - UPLOAD_DIR=/app/uploads
       - MAX_FILE_SIZE=10485760
-      - SUPPORTED_FILE_TYPES=.js,.jsx,.tsx,.ts
+      - SUPPORTED_FILE_TYPES=[".js",".jsx",".tsx",".ts"]
       - LOG_LEVEL=INFO
       - ENVIRONMENT=production
     volumes:
@@ -33,13 +33,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://13.211.45.190:8000
       - NODE_ENV=production
     depends_on:
       - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
