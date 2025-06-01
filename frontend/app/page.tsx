@@ -33,7 +33,7 @@ import {
   type AnalysisIssue,
   type AnalysisStatusResponse,
   type APIStatusResponse
-} from "@/lib/api"
+} from "./api"
 
 type AppState = "upload" | "processing" | "analysis" | "report" | "error"
 
