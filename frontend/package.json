@@ -52,7 +52,6 @@
     
     "lucide-react": "^0.454.0",
     "cmdk": "1.0.4",
-    "react-day-picker": "8.10.1",
     
     "react-hook-form": "^7.54.1",
     "@hookform/resolvers": "^3.9.1",
