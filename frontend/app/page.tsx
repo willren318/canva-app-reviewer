@@ -33,7 +33,7 @@ import {
   type AnalysisIssue,
   type AnalysisStatusResponse,
   type APIStatusResponse
-} from "../lib/api"
+} from "@/lib/api"
 
 type AppState = "upload" | "processing" | "analysis" | "report" | "error"
 
@@ -709,7 +709,7 @@ export default function CanvaAppReviewer() {
                     </div>
                 ` : ''}
                 <div class="suggestion">
-                    <div class="suggestion-header">�� Suggestion:</div>
+                    <div class="suggestion-header">💡 Suggestion:</div>
                     <div>${escapeHtml(issue.recommendation)}</div>
                 </div>
                 ${issue.guideline ? `<p><strong>📖 Guideline:</strong> ${escapeHtml(issue.guideline)}</p>` : ''}

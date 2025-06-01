@@ -16,6 +16,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Debug: List the files to see what's been copied
+RUN ls -la
+RUN ls -la lib/ || echo "lib directory not found"
+RUN ls -la app/ || echo "app directory not found"
+
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci --legacy-peer-deps
 
