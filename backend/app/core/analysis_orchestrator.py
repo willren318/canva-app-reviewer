@@ -5,7 +5,7 @@ Manages parallel analysis execution and result aggregation.
 
 import asyncio
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Callable
 from datetime import datetime
 
 from ..models.response import AnalysisResult
@@ -42,7 +42,8 @@ class AnalysisOrchestrator:
         }
     
     async def analyze_file(self, file_path: str, file_content: str, 
-                          file_metadata: Dict[str, Any]) -> AnalysisResult:
+                          file_metadata: Dict[str, Any], 
+                          progress_callback: Optional[Callable[[int, str], None]] = None) -> AnalysisResult:
         """
         Perform comprehensive analysis using all analyzers in parallel.
         
@@ -50,6 +51,7 @@ class AnalysisOrchestrator:
             file_path: Path to the analyzed file
             file_content: Content of the file to analyze
             file_metadata: Metadata about the file (name, size, etc.)
+            progress_callback: Optional callback function to report progress (progress%, message)
             
         Returns:
             AnalysisResult: Aggregated analysis results with overall score
@@ -58,16 +60,31 @@ class AnalysisOrchestrator:
         
         logger.info(f"Starting comprehensive analysis for file: {file_metadata.get('file_name', 'unknown')}")
         
+        # Report initial progress
+        if progress_callback:
+            progress_callback(5, "Initializing analyzers...")
+        
         try:
-            # Run all analyzers in parallel
-            analysis_tasks = [
-                self._run_analyzer("security", file_content, file_metadata),
-                self._run_analyzer("code_quality", file_content, file_metadata),
-                self._run_analyzer("ui_ux", file_content, file_metadata)
-            ]
+            # Report starting parallel analysis
+            if progress_callback:
+                progress_callback(10, "Starting Security, Code Quality, and UI/UX analysis...")
+            
+            # Run all analyzers in parallel with individual progress tracking
+            analysis_tasks = []
+            
+            # Create tasks for each analyzer
+            security_task = self._run_analyzer_with_progress("security", file_content, file_metadata, progress_callback, 15, 40)
+            code_quality_task = self._run_analyzer_with_progress("code_quality", file_content, file_metadata, progress_callback, 40, 65)
+            ui_ux_task = self._run_analyzer_with_progress("ui_ux", file_content, file_metadata, progress_callback, 65, 90)
+            
+            analysis_tasks = [security_task, code_quality_task, ui_ux_task]
             
             # Wait for all analyses to complete
             results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+            
+            # Report aggregation phase
+            if progress_callback:
+                progress_callback(92, "Aggregating analysis results...")
             
             # Process results and handle any failures
             analysis_results = {}
@@ -79,6 +96,10 @@ class AnalysisOrchestrator:
                 else:
                     analysis_results[category] = result
             
+            # Report final aggregation
+            if progress_callback:
+                progress_callback(95, "Calculating final scores...")
+            
             # Aggregate results
             aggregated_result = self._aggregate_results(
                 analysis_results, file_path, file_metadata, start_time
@@ -86,6 +107,10 @@ class AnalysisOrchestrator:
             
             end_time = datetime.utcnow()
             analysis_duration = (end_time - start_time).total_seconds()
+            
+            # Report completion
+            if progress_callback:
+                progress_callback(100, "Analysis completed successfully")
             
             logger.info(
                 f"Analysis completed for {file_metadata.get('file_name')} in {analysis_duration:.2f}s. "
@@ -96,12 +121,61 @@ class AnalysisOrchestrator:
             
         except Exception as e:
             logger.error(f"Critical error during analysis orchestration: {str(e)}")
+            # Report error
+            if progress_callback:
+                progress_callback(0, f"Analysis failed: {str(e)}")
             # Return a minimal result indicating failure
             return self._create_error_result(file_path, file_metadata, str(e), start_time)
     
+    async def _run_analyzer_with_progress(self, category: str, file_content: str, 
+                                        file_metadata: Dict[str, Any], 
+                                        progress_callback: Optional[Callable[[int, str], None]],
+                                        start_progress: int, end_progress: int) -> Dict[str, Any]:
+        """Run a single analyzer with progress reporting."""
+        analyzer = self.analyzers[category]
+        
+        # Get proper display name for analyzer
+        def get_analyzer_display_name(category: str) -> str:
+            if category == "ui_ux":
+                return "UI/UX"
+            elif category == "code_quality":
+                return "Code Quality"
+            elif category == "security":
+                return "Security"
+            else:
+                return category.replace('_', ' ').title()
+        
+        analyzer_name = get_analyzer_display_name(category)
+        
+        # Report starting this analyzer
+        if progress_callback:
+            progress_callback(start_progress, f"Running {analyzer_name} analysis...")
+        
+        logger.debug(f"Starting {category} analysis")
+        start_time = datetime.utcnow()
+        
+        try:
+            result = await analyzer.analyze(file_content, file_metadata)
+            
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            logger.debug(f"{category} analysis completed in {duration:.2f}s")
+            
+            # Report completion of this analyzer
+            if progress_callback:
+                progress_callback(end_progress, f"{analyzer_name} analysis completed")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in {category} analyzer: {str(e)}")
+            # Report error for this analyzer
+            if progress_callback:
+                progress_callback(end_progress, f"{analyzer_name} analysis failed: {str(e)}")
+            raise e
+
     async def _run_analyzer(self, category: str, file_content: str, 
                            file_metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Run a single analyzer and return its results."""
+        """Run a single analyzer and return its results (legacy method for backward compatibility)."""
         analyzer = self.analyzers[category]
         
         logger.debug(f"Starting {category} analysis")

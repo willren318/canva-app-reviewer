@@ -16,6 +16,7 @@ from app.config import settings
 from app.models.response import FileUploadResponse, FileInfoResponse, ErrorResponse
 from app.core.file_handler import FileHandler
 from app.utils.file_utils import validate_file, save_upload_file
+from app.utils.filename_mapping import store_original_filename, get_original_filename, remove_filename_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -56,14 +57,18 @@ async def upload_file(
         # Save file to disk
         file_path = await save_upload_file(file, file_id, upload_path)
         
+        # Store simple filename mapping
+        store_original_filename(file_id, file.filename)
+        
         # Create file handler instance
         file_handler = FileHandler(file_path, file_id)
         
         # Validate file content (syntax check)
         content_validation = await file_handler.validate_content()
         if not content_validation["valid"]:
-            # Clean up the uploaded file
+            # Clean up the uploaded file and filename mapping
             file_path.unlink(missing_ok=True)
+            remove_filename_mapping(file_id)
             raise HTTPException(
                 status_code=400,
                 detail=f"File content validation failed: {content_validation['error']}"
@@ -75,7 +80,7 @@ async def upload_file(
             success=True,
             message="File uploaded successfully",
             file_id=file_id,
-            file_name=file.filename,
+            file_name=file.filename,  # Use original filename in response
             file_size=file.size,
             file_type=content_validation.get("file_type", "unknown"),
             upload_timestamp=datetime.utcnow().isoformat()
@@ -114,12 +119,19 @@ async def get_file_info(file_id: str) -> FileInfoResponse:
         # Get file stats
         stat = file_path.stat()
         
+        # Get original filename from filename mapping
+        original_filename = get_original_filename(file_id)
+        
+        # Use original filename if available, otherwise fall back to internal filename
+        display_filename = original_filename if original_filename else file_path.name
+        upload_timestamp = datetime.fromtimestamp(stat.st_ctime).isoformat()
+        
         return FileInfoResponse(
             file_id=file_id,
-            file_name=file_path.name,
+            file_name=display_filename,
             file_size=stat.st_size,
             file_type=file_path.suffix,
-            upload_timestamp=datetime.fromtimestamp(stat.st_ctime).isoformat(),
+            upload_timestamp=upload_timestamp,
             status="uploaded"
         )
         
@@ -135,30 +147,38 @@ async def get_file_info(file_id: str) -> FileInfoResponse:
 
 @router.delete("/{file_id}")
 async def delete_file(file_id: str) -> JSONResponse:
-    """Delete an uploaded file."""
+    """Delete an uploaded file and its filename mapping."""
     try:
         upload_path = Path(settings.upload_dir)
+        file_deleted = False
         
         # Try all supported extensions
         for ext in settings.supported_file_types:
             file_path = upload_path / f"{file_id}{ext}"
             if file_path.exists():
                 file_path.unlink()
+                file_deleted = True
                 logger.info(f"File deleted: {file_id}{ext}")
-                
-                return JSONResponse(
-                    status_code=200,
-                    content={
-                        "status": "success",
-                        "message": "File deleted successfully",
-                        "file_id": file_id
-                    }
-                )
+                break
         
-        raise HTTPException(
-            status_code=404,
-            detail="File not found"
-        )
+        # Clean up filename mapping
+        remove_filename_mapping(file_id)
+        
+        if file_deleted:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "success",
+                    "message": "File and filename mapping deleted successfully",
+                    "file_id": file_id,
+                    "file_deleted": file_deleted
+                }
+            )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="File not found"
+            )
         
     except HTTPException:
         raise

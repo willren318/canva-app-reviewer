@@ -129,7 +129,29 @@ class UIUXAnalyzer(BaseAnalyzer):
             print("=" * 50)
             
             # Parse Claude's response
-            return self._parse_claude_response(response_text)
+            parsed_result = self._parse_claude_response(response_text)
+            
+            # Calculate score based on issues (this was missing!)
+            score = self._calculate_score(parsed_result.get("issues", []))
+            
+            # Return complete result with score
+            return {
+                "score": score,
+                "issues": parsed_result.get("issues", []),
+                "recommendations": parsed_result.get("recommendations", []),
+                "metadata": {
+                    "analyzer": self.get_analyzer_name(),
+                    "version": self.get_version(),
+                    "claude_model": settings.claude_model,
+                    "total_issues": len(parsed_result.get("issues", [])),
+                    "issue_breakdown": self._get_issue_breakdown(parsed_result.get("issues", [])),
+                    "visual_analysis": {
+                        "screenshot_captured": screenshot_base64 is not None,
+                        "system_used": "javascript_only",
+                        "file_type": "js"
+                    }
+                }
+            }
             
         except Exception as e:
             logger.error(f"Claude analysis failed: {str(e)}")
@@ -175,6 +197,9 @@ class UIUXAnalyzer(BaseAnalyzer):
             
             result = self._parse_claude_response(response_text)
             
+            # Calculate score based on issues (this was missing!)
+            score = self._calculate_score(result.get("issues", []))
+            
             # Add appropriate metadata based on reason
             metadata = {
                 'visual_analysis': {
@@ -196,8 +221,20 @@ class UIUXAnalyzer(BaseAnalyzer):
                     'note': 'Screenshot capture failed, using code-only analysis'
                 })
             
-            result['metadata'] = metadata
-            return result
+            # Return complete result with score and metadata
+            return {
+                "score": score,
+                "issues": result.get("issues", []),
+                "recommendations": result.get("recommendations", []),
+                "metadata": {
+                    "analyzer": self.get_analyzer_name(),
+                    "version": self.get_version(),
+                    "claude_model": settings.claude_model,
+                    "total_issues": len(result.get("issues", [])),
+                    "issue_breakdown": self._get_issue_breakdown(result.get("issues", [])),
+                    "visual_analysis": metadata['visual_analysis']
+                }
+            }
             
         except Exception as e:
             logger.error(f"Fallback analysis failed: {str(e)}")
