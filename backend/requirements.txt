@@ -1,0 +1,49 @@
+# FastAPI and core dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+
+# CORS middleware (included with FastAPI)
+# No additional package needed
+
+# File handling
+aiofiles==23.2.1
+
+# Environment management
+python-dotenv==1.0.0
+
+# AI Analysis
+anthropic==0.52.1
+
+# Screenshot capture and visual analysis
+playwright==1.40.0
+opencv-python==4.8.1.78
+numpy==1.24.3
+
+# HTML/XML processing for analysis
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Report generation
+jinja2==3.1.2
+markdown==3.5.1
+
+# AWS deployment (optional - uncomment if using AWS services)
+# boto3==1.34.0
+# botocore==1.34.0
+
+# Development and testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Production server (alternative to uvicorn for AWS)
+gunicorn==21.2.0
+
+# Logging and monitoring
+structlog==23.2.0
+
+# Security headers middleware
+python-jose[cryptography]==3.3.0 
