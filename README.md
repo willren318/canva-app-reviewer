@@ -94,7 +94,7 @@ Live prototype: http://13.211.45.190:3000
 
 **Phase 2 - AI Analysis & Intelligent Scoring:**
 - **🧠 Prompt Engineering**: Each analyzer's data formatted into specialized prompts
-- **🤖 Claude 3.5 Sonnet**: Processes combined data with context-aware analysis
+- **🤖 Claude 4 Sonnet**: Processes combined data with context-aware analysis
 - **📊 Advanced Scoring**: Weighted algorithm with severity-based deductions
 - **📋 Professional Reports**: Downloadable HTML reports with actionable insights
 
@@ -282,7 +282,7 @@ npm run dev
 
 ### **Backend Stack**
 - **Framework**: FastAPI (Python)
-- **AI Integration**: Claude 3.5 Sonnet via Anthropic API
+- **AI Integration**: Claude 4 Sonnet via Anthropic API
 - **Screenshot System**: Playwright with custom JavaScript execution
 - **File Processing**: Multi-format support with metadata extraction
 - **Architecture**: Modular analyzer pattern with parallel execution
