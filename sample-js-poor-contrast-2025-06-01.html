@@ -1,0 +1,1050 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canva App Analysis Report - sample-js-poor-contrast.js</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            color: #374151;
+            background: #ffffff;
+        }
+        .header { 
+            text-align: center; 
+            border-bottom: 3px solid #3B82F6; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px;
+        }
+        .score-circle { 
+            display: inline-block; 
+            width: 80px; 
+            height: 80px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            color: white; 
+            text-align: center; 
+            line-height: 80px; 
+            font-size: 24px; 
+            font-weight: bold;
+            margin: 10px;
+        }
+        .category-score { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px; 
+            margin: 8px 0; 
+            background: #F3F4F6; 
+            border-radius: 8px;
+            clear: both;
+        }
+        .issue { 
+            border: 1px solid #E5E7EB; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            padding: 20px;
+            clear: both;
+            overflow: hidden;
+        }
+        .issue-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .issue-title {
+            flex: 1;
+            min-width: 200px;
+        }
+        .severity-critical { background: #FEF2F2; border-left: 4px solid #EF4444; }
+        .severity-high { background: #FFFBEB; border-left: 4px solid #F59E0B; }
+        .severity-medium { background: #FEFCE8; border-left: 4px solid #EAB308; }
+        .severity-low { background: #EFF6FF; border-left: 4px solid #3B82F6; }
+        .severity-badge { 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .badge-critical { background: #FEE2E2; color: #991B1B; }
+        .badge-high { background: #FED7AA; color: #C2410C; }
+        .badge-medium { background: #FEF3C7; color: #A16207; }
+        .badge-low { background: #DBEAFE; color: #1D4ED8; }
+        .code-block { 
+            background: #F9FAFB; 
+            border: 1px solid #E5E7EB; 
+            border-radius: 6px; 
+            padding: 15px; 
+            font-family: 'Monaco', 'Courier New', monospace; 
+            font-size: 13px;
+            margin: 12px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .suggestion { 
+            background: #F0FDF4; 
+            border: 1px solid #BBF7D0; 
+            border-radius: 6px; 
+            padding: 15px; 
+            margin: 12px 0;
+        }
+        .suggestion-header {
+            font-weight: 600;
+            color: #166534;
+            margin-bottom: 8px;
+        }
+        .recommendation-list { 
+            background: #F8FAFC; 
+            border-radius: 8px; 
+            padding: 16px; 
+            margin: 16px 0;
+        }
+        .recommendation-list ul { 
+            margin: 8px 0; 
+            padding-left: 20px;
+        }
+        .recommendation-list li { 
+            margin: 8px 0;
+        }
+        .stats-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+        .stat-number {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #6B7280;
+            margin-top: 2px;
+        }
+        h1, h2, h3, h4 { 
+            color: #1F2937; 
+            margin-top: 0;
+        }
+        h3 {
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        .section { 
+            margin: 40px 0; 
+            clear: both;
+        }
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        @media print {
+            body { margin: 0; padding: 15px; }
+            .issue { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Canva App Analysis Report</h1>
+        <h2>sample-js-poor-contrast.js</h2>
+        <p><strong>Generated:</strong> June 1, 2025 at 12:30 PM</p>
+        <p><strong>Analysis Duration:</strong> 26.73s</p>
+    </div>
+
+    <div class="section">
+        <h2>📊 Overall Assessment</h2>
+        <div style="text-align: center;">
+            <div class="score-circle">46</div>
+            <p><strong>Canva-Ready Score: 46/100</strong></p>
+        </div>
+        <p>🔍 Analysis complete: limited Canva app readiness with a score of 46/100. Found 18 issues including 2 critical issues requiring immediate attention.</p>
+        
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" style="color: #EF4444;">2</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #F59E0B;">6</div>
+                <div class="stat-label">High</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #EAB308;">6</div>
+                <div class="stat-label">Medium</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #3B82F6;">4</div>
+                <div class="stat-label">Low</div>
+            </div>
+            <div class="stat-item" style="border-left: 2px solid #E5E7EB; padding-left: 20px; margin-left: 10px;">
+                <div class="stat-number" style="color: #1F2937;">18</div>
+                <div class="stat-label">Total Issues</div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="section">
+        <h2>📈 Category Breakdown</h2>
+        
+            <div class="category-score">
+                <div>
+                    <strong>Security</strong>
+                    <span style="color: #6B7280; font-size: 14px;"> (3 issues)</span>
+                </div>
+                <div style="font-size: 18px; font-weight: bold; color: #3B82F6;">91/100</div>
+            </div>
+          
+            <div class="category-score">
+                <div>
+                    <strong>Code Quality</strong>
+                    <span style="color: #6B7280; font-size: 14px;"> (7 issues)</span>
+                </div>
+                <div style="font-size: 18px; font-weight: bold; color: #3B82F6;">61/100</div>
+            </div>
+          
+            <div class="category-score">
+                <div>
+                    <strong>UI & UX</strong>
+                    <span style="color: #6B7280; font-size: 14px;"> (8 issues)</span>
+                </div>
+                <div style="font-size: 18px; font-weight: bold; color: #3B82F6;">0/100</div>
+            </div>
+          
+    </div>
+
+    
+    <div class="section">
+        <h2>💡 Key Recommendations</h2>
+        <div class="recommendation-list">
+            <ul>
+                <li>🚨 URGENT: This code has critical issues that need immediate attention before deployment.</li><li>🔒 Security: Excellent standards maintained.</li><li>⚙️ Code Quality: Good foundation with room for minor improvements.</li><li>🎨 UI UX: 2 critical issues need immediate fixes.</li><li>📋 Next Steps: Start by addressing the top 3 highest-priority issues:</li>
+            </ul>
+        </div>
+    </div>
+    
+
+    <div class="section">
+        <h2>🔍 Detailed Findings</h2>
+        
+        <h3>📋 All Issues Summary</h3>
+        <p><strong>Total Issues Found:</strong> 18</p>
+        
+        
+            <h3>Critical Priority Issues (2)</h3>
+            
+              <div class="issue severity-critical clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Multiple WCAG contrast failures throughout app</h4>
+                    <span class="severity-badge badge-critical">critical</span>
+                </div>
+                <p>Light gray text on light backgrounds fails WCAG 2.1 AA standards, making content unreadable for users with visual impairments.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.style.color = '#cccccc'; title.style.backgroundColor = '#f0f0f0';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Replace custom colors with Canva's functional color tokens like colorTypographyPrimary for proper contrast ratios.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-critical clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Custom styling violates Canva design system</h4>
+                    <span class="severity-badge badge-critical">critical</span>
+                </div>
+                <p>Direct style manipulation bypasses Canva's App UI Kit components and design tokens, breaking visual consistency.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">container.style.backgroundColor = '#f5f5f5';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Box, Text, Title, and Button components with functional colors instead of custom CSS.</div>
+                </div>
+                
+              </div>
+            
+          
+            <h3>High Priority Issues (6)</h3>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Monolithic function violates single responsibility</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>createPoorContrastApp() handles UI creation, styling, event handling, and mounting - should be split into smaller, focused functions</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">function createPoorContrastApp() {</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Split into separate functions: createTitle(), createButtons(), createSettings(), mountApp()</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Extensive code duplication in styling</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Repeated inline styling patterns throughout the code - no reusable style utilities or constants</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">style.backgroundColor = '#...'; style.color = '#...';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Create style constants object and reusable styling functions</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Yellow text on white background nearly invisible</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Description text uses light yellow on white, creating severe readability issues visible in the screenshot.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">description.style.color = '#ffff99'; description.style.backgroundColor = 'white';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Text component with colorTypographyPrimary or colorTypographySecondary.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Poor button contrast creates usability barriers</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Light blue and yellow buttons with light text are barely visible, impacting critical user interactions.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">addButton.style.backgroundColor = '#b3d9ff'; addButton.style.color = '#f0f0f0';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Replace with Canva's Button component using primary and secondary variants for proper contrast.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Error message has insufficient contrast</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Red text on pink background fails accessibility standards and doesn't use Canva's error messaging patterns.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">errorMessage.style.backgroundColor = '#ffccdd'; errorMessage.style.color = '#ff6699';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Alert component or functional colors like colorDangerFore on colorDangerBack.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Form input has poor visibility</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Light gray text in input field is barely readable, creating form usability issues.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">input.style.color = '#cccccc'; input.style.backgroundColor = '#f5f5f5';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's TextInput component with proper focus states and readable text colors.</div>
+                </div>
+                
+              </div>
+            
+          
+            <h3>Medium Priority Issues (6)</h3>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Direct DOM manipulation without input sanitization</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Using textContent with dynamic data without validation could lead to content injection if user input is later incorporated</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.textContent = 'Design Tool Dashboard';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Validate and sanitize any dynamic content before setting textContent, even for static strings</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Magic numbers and hardcoded values</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Multiple hardcoded values for padding, margins, font sizes without named constants</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">container.style.padding = '16px';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Define spacing and typography constants at module level</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Inefficient DOM manipulation</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Creating and styling elements individually instead of using document fragments or templates</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">const title = document.createElement('div');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use DocumentFragment for batch DOM operations or template-based approach</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Missing error handling for DOM operations</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>No error handling for element creation, event listeners, or DOM mounting operations</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">appRoot.appendChild(container);</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Add try-catch blocks around DOM operations and provide fallback behavior</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Non-semantic typography implementation</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Custom font styling instead of Canva's typography system breaks consistency and accessibility.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.style.fontSize = '18px'; title.style.fontFamily = 'Arial, sans-serif';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Title component with appropriate size variants (small, medium, large).</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Missing proper component structure</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Manual DOM creation bypasses Canva's layout system and responsive design patterns.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">const container = document.createElement('div');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Structure app using Canva's Rows, Columns, and Box components for proper layout and spacing.</div>
+                </div>
+                
+              </div>
+            
+          
+            <h3>Low Priority Issues (4)</h3>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Alert usage may expose sensitive information</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Using alert() can potentially expose application state or be used for social engineering attacks</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">alert('Add Element clicked - but this button is hard to see!');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Replace alert() with proper UI notifications or logging mechanisms</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Unsafe DOM element creation pattern</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Creating elements and setting properties without validation could be exploited if extended with user input</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">const title = document.createElement('h1');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Implement input validation wrapper functions for DOM element creation and property setting</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Inconsistent element creation pattern</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Mixed approaches to element creation and configuration - some set properties, others use methods</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">input.type = 'text'; vs title.textContent = '...'</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Standardize element creation with consistent helper function or pattern</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Poor separation of data and presentation</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Text content, styles, and structure are mixed together making content updates difficult</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.textContent = 'Design Tool Dashboard';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Extract text content and style definitions to separate configuration objects</div>
+                </div>
+                
+              </div>
+            
+          
+
+        
+            <h3>Security Issues (3)</h3>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Direct DOM manipulation without input sanitization</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Using textContent with dynamic data without validation could lead to content injection if user input is later incorporated</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.textContent = 'Design Tool Dashboard';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Validate and sanitize any dynamic content before setting textContent, even for static strings</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Alert usage may expose sensitive information</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Using alert() can potentially expose application state or be used for social engineering attacks</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">alert('Add Element clicked - but this button is hard to see!');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Replace alert() with proper UI notifications or logging mechanisms</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Unsafe DOM element creation pattern</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Creating elements and setting properties without validation could be exploited if extended with user input</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">const title = document.createElement('h1');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Implement input validation wrapper functions for DOM element creation and property setting</div>
+                </div>
+                
+              </div>
+            
+          
+            <h3>Code Quality Issues (7)</h3>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Monolithic function violates single responsibility</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>createPoorContrastApp() handles UI creation, styling, event handling, and mounting - should be split into smaller, focused functions</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">function createPoorContrastApp() {</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Split into separate functions: createTitle(), createButtons(), createSettings(), mountApp()</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Extensive code duplication in styling</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Repeated inline styling patterns throughout the code - no reusable style utilities or constants</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">style.backgroundColor = '#...'; style.color = '#...';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Create style constants object and reusable styling functions</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Magic numbers and hardcoded values</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Multiple hardcoded values for padding, margins, font sizes without named constants</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">container.style.padding = '16px';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Define spacing and typography constants at module level</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Inefficient DOM manipulation</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Creating and styling elements individually instead of using document fragments or templates</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">const title = document.createElement('div');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use DocumentFragment for batch DOM operations or template-based approach</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Missing error handling for DOM operations</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>No error handling for element creation, event listeners, or DOM mounting operations</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">appRoot.appendChild(container);</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Add try-catch blocks around DOM operations and provide fallback behavior</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Inconsistent element creation pattern</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Mixed approaches to element creation and configuration - some set properties, others use methods</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">input.type = 'text'; vs title.textContent = '...'</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Standardize element creation with consistent helper function or pattern</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-low clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Poor separation of data and presentation</h4>
+                    <span class="severity-badge badge-low">low</span>
+                </div>
+                <p>Text content, styles, and structure are mixed together making content updates difficult</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.textContent = 'Design Tool Dashboard';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Extract text content and style definitions to separate configuration objects</div>
+                </div>
+                
+              </div>
+            
+          
+            <h3>UI & UX Issues (8)</h3>
+            
+              <div class="issue severity-critical clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Multiple WCAG contrast failures throughout app</h4>
+                    <span class="severity-badge badge-critical">critical</span>
+                </div>
+                <p>Light gray text on light backgrounds fails WCAG 2.1 AA standards, making content unreadable for users with visual impairments.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.style.color = '#cccccc'; title.style.backgroundColor = '#f0f0f0';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Replace custom colors with Canva's functional color tokens like colorTypographyPrimary for proper contrast ratios.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-critical clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Custom styling violates Canva design system</h4>
+                    <span class="severity-badge badge-critical">critical</span>
+                </div>
+                <p>Direct style manipulation bypasses Canva's App UI Kit components and design tokens, breaking visual consistency.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">container.style.backgroundColor = '#f5f5f5';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Box, Text, Title, and Button components with functional colors instead of custom CSS.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Yellow text on white background nearly invisible</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Description text uses light yellow on white, creating severe readability issues visible in the screenshot.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">description.style.color = '#ffff99'; description.style.backgroundColor = 'white';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Text component with colorTypographyPrimary or colorTypographySecondary.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Poor button contrast creates usability barriers</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Light blue and yellow buttons with light text are barely visible, impacting critical user interactions.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">addButton.style.backgroundColor = '#b3d9ff'; addButton.style.color = '#f0f0f0';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Replace with Canva's Button component using primary and secondary variants for proper contrast.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Error message has insufficient contrast</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Red text on pink background fails accessibility standards and doesn't use Canva's error messaging patterns.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">errorMessage.style.backgroundColor = '#ffccdd'; errorMessage.style.color = '#ff6699';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Alert component or functional colors like colorDangerFore on colorDangerBack.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-high clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Form input has poor visibility</h4>
+                    <span class="severity-badge badge-high">high</span>
+                </div>
+                <p>Light gray text in input field is barely readable, creating form usability issues.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">input.style.color = '#cccccc'; input.style.backgroundColor = '#f5f5f5';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's TextInput component with proper focus states and readable text colors.</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Non-semantic typography implementation</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Custom font styling instead of Canva's typography system breaks consistency and accessibility.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">title.style.fontSize = '18px'; title.style.fontFamily = 'Arial, sans-serif';</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Use Canva's Title component with appropriate size variants (small, medium, large).</div>
+                </div>
+                
+              </div>
+            
+              <div class="issue severity-medium clearfix">
+                <div class="issue-header">
+                    <h4 class="issue-title">Missing proper component structure</h4>
+                    <span class="severity-badge badge-medium">medium</span>
+                </div>
+                <p>Manual DOM creation bypasses Canva's layout system and responsive design patterns.</p>
+                
+                    <div>
+                        <div class="code-header">
+                            🔍 Issue Found Here:
+                        </div>
+                        <div class="code-block">const container = document.createElement('div');</div>
+                    </div>
+                
+                <div class="suggestion">
+                    <div class="suggestion-header">💡 Suggestion:</div>
+                    <div>Structure app using Canva's Rows, Columns, and Box components for proper layout and spacing.</div>
+                </div>
+                
+              </div>
+            
+          
+    </div>
+
+    <div class="section" style="text-align: center; border-top: 2px solid #E5E7EB; padding-top: 20px; margin-top: 40px;">
+        <p style="color: #6B7280; font-size: 14px;">
+            Generated by Canva App Reviewer • June 1, 2025 at 12:30 PM<br>
+            MIT Licensed • This prototype is not affiliated with Canva
+        </p>
+    </div>
+</body>
+</html>

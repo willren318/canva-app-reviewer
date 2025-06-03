@@ -2,6 +2,8 @@
 
 A comprehensive analysis tool for Canva apps that provides automated code quality assessment, security analysis, and UI/UX evaluation given a file.
 
+Live prototype: http://13.211.45.190:3000
+
 ## 🏛️ System Architecture
 
 ### **📊 High-Level Architecture Overview**
